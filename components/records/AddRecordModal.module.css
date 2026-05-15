@@ -285,6 +285,8 @@
   align-items: center;
   justify-content: center;
   transition: all var(--transition-base);
+  cursor: pointer;
+  z-index: 5;
 }
 
 .mapPinBtn:active {

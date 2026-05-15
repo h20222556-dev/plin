@@ -246,7 +246,17 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                       onChange={(e) => set('venue', e.target.value)}
                     />
                   </div>
-                  <button className={styles.mapPinBtn} onClick={() => setIsMapOpen(true)}>
+                  <button 
+                    type="button"
+                    className={styles.mapPinBtn} 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (form.lat && form.lng) {
+                        setTempLocation({ lat: form.lat, lng: form.lng, address: form.venue });
+                      }
+                      setIsMapOpen(true);
+                    }}
+                  >
                     <MapIcon size={20} color="#0054CB" />
                   </button>
                 </div>
