@@ -1,28 +1,17 @@
 'use client';
 
-import { useState, useRef, useEffect, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useRef, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
   CloudRain, Sun, Cloud, Snowflake, Wind,
-  Music, Lock, Globe, Check, Plus, Trash2,
-  Map as MapIcon, Image as ImageIcon, Flame, Heart, Star
+  Music, Lock, Globe, Plus, Trash2,
+  Map as MapIcon, Flame, Heart, Star
 } from 'lucide-react';
 
-// Leaflet 기본 아이콘 깨짐 방지
-const fixLeafletIcon = () => {
-  if (typeof window !== 'undefined') {
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
-  }
-};
+// MapSelectModal은 Leaflet을 사용하므로 SSR을 비활성화하여 dynamic import합니다.
+const MapSelectModal = dynamic(() => import('./MapSelectModal'), { ssr: false });
 
 const WEATHER_OPTIONS = [
   { id: 'sunny', icon: Sun, label: '맑음' },
@@ -39,28 +28,13 @@ const PIN_OPTIONS = [
   { id: 'star', icon: Star, label: '최고' },
 ];
 
-// 지도 클릭 이벤트 처리 컴포넌트
-function MapClickHandler({ onClick }) {
-  useMapEvents({
-    click: (e) => {
-      onClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
-
 export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
   
   // 지도 모달 관련 상태
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [tempLocation, setTempLocation] = useState(null); // { lat, lng, address }
-  const [isGeocoding, setIsGeocoding] = useState(false);
-
-  useEffect(() => {
-    fixLeafletIcon();
-  }, []);
+  const [tempLocation, setTempLocation] = useState(null);
 
   const [form, setForm] = useState({
     photos: [],
@@ -74,8 +48,8 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     isPublic: true,
     tags: initialData?.genre || [],
     pinIcon: 'music',
-    lat: null,
-    lng: null
+    lat: initialData?.lat || null,
+    lng: initialData?.lng || null
   });
   
   const [newSongTitle, setNewSongTitle] = useState('');
@@ -83,36 +57,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [tagInput, setTagInput] = useState('');
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
-
-  // 지도 클릭 시 호출
-  const handleMapClick = async (lat, lng) => {
-    setIsGeocoding(true);
-    setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
-    
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
-      const data = await res.json();
-      if (data && data.display_name) {
-        setTempLocation({ lat, lng, address: data.display_name });
-      } else {
-        setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-      }
-    } catch (err) {
-      console.warn('Reverse geocoding failed:', err);
-      setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-    } finally {
-      setIsGeocoding(false);
-    }
-  };
-
-  // 위치 선택 확정
-  const confirmLocation = () => {
-    if (!tempLocation) return;
-    set('lat', tempLocation.lat);
-    set('lng', tempLocation.lng);
-    set('venue', tempLocation.address);
-    setIsMapOpen(false);
-  };
 
   const addSong = () => {
     if (!newSongTitle.trim()) return;
@@ -165,7 +109,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
       <div className={styles.modal}>
         {/* Header */}
         <div className={styles.header}>
-          <button className={styles.iconBtn} onClick={step === 1 ? onClose : () => setStep(step - 1)}>
+          <button type="button" className={styles.iconBtn} onClick={step === 1 ? onClose : () => setStep(step - 1)}>
             {step === 1 ? <X size={24} color="#101828" /> : <span style={{fontSize:'16px', fontWeight:600}}>이전</span>}
           </button>
           <div className={styles.stepIndicator}>
@@ -173,7 +117,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <div key={s} className={`${styles.stepDot} ${step >= s ? styles.stepDotActive : ''}`} />
             ))}
           </div>
-          <button className={styles.saveTextBtn} onClick={step === 3 ? handleSave : () => setStep(step + 1)}>
+          <button type="button" className={styles.saveTextBtn} onClick={step === 3 ? handleSave : () => setStep(step + 1)}>
             {step === 3 ? '완료' : '다음'}
           </button>
         </div>
@@ -185,7 +129,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <h2 className={styles.stepTitle}>어떤 공연이었나요?</h2>
               
               <div className={styles.photoUploadArea}>
-                <button className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
+                <button type="button" className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
                   <Camera size={28} color="#98A2B3" />
                   <span className={styles.uploadText}>{form.photos.length}/10</span>
                 </button>
@@ -201,7 +145,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                   {form.photos.map((photo, i) => (
                     <div key={i} className={styles.photoPreview}>
                       <img src={photo} alt={`Uploaded ${i}`} />
-                      <button className={styles.removePhotoBtn} onClick={() => set('photos', form.photos.filter((_, idx) => idx !== i))}>
+                      <button type="button" className={styles.removePhotoBtn} onClick={() => set('photos', form.photos.filter((_, idx) => idx !== i))}>
                         <X size={14} color="white" />
                       </button>
                     </div>
@@ -257,8 +201,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                   <button 
                     type="button"
                     className={styles.mapPinBtn} 
-                    onClick={(e) => {
-                      e.stopPropagation();
+                    onClick={() => {
                       if (form.lat && form.lng) {
                         setTempLocation({ lat: form.lat, lng: form.lng, address: form.venue });
                       }
@@ -283,6 +226,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                   {WEATHER_OPTIONS.map(w => (
                     <button 
                       key={w.id} 
+                      type="button"
                       className={`${styles.weatherBtn} ${form.weather === w.id ? styles.weatherBtnActive : ''}`}
                       onClick={() => set('weather', w.id)}
                     >
@@ -299,6 +243,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                   {PIN_OPTIONS.map(p => (
                     <button 
                       key={p.id} 
+                      type="button"
                       className={`${styles.pinBtn} ${form.pinIcon === p.id ? styles.pinBtnActive : ''}`}
                       onClick={() => set('pinIcon', p.id)}
                     >
@@ -322,7 +267,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>해시태그</label>
                 <div className={styles.tagInputArea}>
-                  <HashIcon size={18} color="#667085" />
+                  <span style={{color:'#667085', fontWeight:700}}>#</span>
                   <input 
                     className={styles.inputGhost} 
                     placeholder="태그 입력 후 Enter" 
@@ -336,7 +281,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     {form.tags.map((tag, i) => (
                       <span key={i} className={styles.tagChip}>
                         #{tag}
-                        <button className={styles.removeTagBtn} onClick={() => removeTag(i)}>
+                        <button type="button" className={styles.removeTagBtn} onClick={() => removeTag(i)}>
                           <X size={12} />
                         </button>
                       </span>
@@ -368,7 +313,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     onChange={(e) => setNewSongArtist(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && addSong()}
                   />
-                  <button className={styles.addSongBtn} onClick={addSong}>
+                  <button type="button" className={styles.addSongBtn} onClick={addSong}>
                     <Plus size={24} color="#0054CB" />
                   </button>
                 </div>
@@ -382,7 +327,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                           <p className={styles.setlistTitle}>{song.title}</p>
                           {song.artist && <p className={styles.setlistArtist}>{song.artist}</p>}
                         </div>
-                        <button className={styles.removeSongBtn} onClick={() => removeSong(i)}>
+                        <button type="button" className={styles.removeSongBtn} onClick={() => removeSong(i)}>
                           <Trash2 size={18} color="#F04438" />
                         </button>
                       </div>
@@ -419,55 +364,17 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
 
       {/* 장소 선택 지도 모달 */}
       {isMapOpen && (
-        <div className={styles.mapModalOverlay} onClick={(e) => e.target === e.currentTarget && setIsMapOpen(false)}>
-          <div className={styles.mapModalContainer}>
-            <div className={styles.mapModalHeader}>
-              <h3>장소 선택</h3>
-              <button onClick={() => setIsMapOpen(false)}><X size={20} color="#101828" /></button>
-            </div>
-            
-            <div className={styles.mapContainerArea}>
-              <MapContainer 
-                center={tempLocation ? [tempLocation.lat, tempLocation.lng] : [37.5665, 126.9780]} 
-                zoom={15} 
-                style={{ width: '100%', height: '100%' }}
-              >
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                <MapClickHandler onClick={handleMapClick} />
-                {tempLocation && <Marker position={[tempLocation.lat, tempLocation.lng]} />}
-              </MapContainer>
-            </div>
-
-            <div className={styles.mapModalFooter}>
-              <div className={styles.selectedAddress}>
-                {tempLocation ? (
-                  <span>📍 {tempLocation.address}</span>
-                ) : (
-                  <span style={{ color: '#98A2B3' }}>지도를 클릭하여 장소를 선택해주세요.</span>
-                )}
-              </div>
-              <button 
-                className={styles.confirmBtn} 
-                disabled={!tempLocation || isGeocoding}
-                onClick={confirmLocation}
-              >
-                {isGeocoding ? '주소 확인 중...' : '이 위치로 선택'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <MapSelectModal
+          initialLocation={tempLocation}
+          onConfirm={(location) => {
+            set('venue', location.address);
+            set('lat', location.lat);
+            set('lng', location.lng);
+            setIsMapOpen(false);
+          }}
+          onClose={() => setIsMapOpen(false)}
+        />
       )}
     </div>
-  );
-}
-
-function HashIcon(props) {
-  return (
-    <svg width={props.size} height={props.size} viewBox="0 0 24 24" fill="none" stroke={props.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <line x1="4" y1="9" x2="20" y2="9"></line>
-      <line x1="4" y1="15" x2="20" y2="15"></line>
-      <line x1="10" y1="3" x2="8" y2="21"></line>
-      <line x1="16" y1="3" x2="14" y2="21"></line>
-    </svg>
   );
 }
