@@ -48,27 +48,11 @@ function MapClickHandler({ onClick }) {
 export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
+  
+  // 지도 모달 관련 상태
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapCenter, setMapCenter] = useState({ lat: 37.566826, lng: 126.978656 });
-
-  const handleMapClick = async (lat, lng) => {
-    setMapCenter({ lat, lng });
-    set('lat', lat);
-    set('lng', lng);
-    
-    // Reverse geocoding (Nominatim API)
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
-      const data = await res.json();
-      if (data && data.display_name) {
-        set('venue', data.display_name);
-      }
-    } catch (err) {
-      console.warn('Reverse geocoding failed:', err);
-    }
-    
-    setIsMapOpen(false);
-  };
+  const [tempLocation, setTempLocation] = useState(null); // { lat, lng, address }
+  const [isGeocoding, setIsGeocoding] = useState(false);
 
   const [form, setForm] = useState({
     photos: [],
@@ -91,6 +75,36 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [tagInput, setTagInput] = useState('');
 
   const set = (key, val) => setForm(f => ({ ...f, [key]: val }));
+
+  // 지도 클릭 시 호출
+  const handleMapClick = async (lat, lng) => {
+    setIsGeocoding(true);
+    setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
+    
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        setTempLocation({ lat, lng, address: data.display_name });
+      } else {
+        setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+      }
+    } catch (err) {
+      console.warn('Reverse geocoding failed:', err);
+      setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+    } finally {
+      setIsGeocoding(false);
+    }
+  };
+
+  // 위치 선택 확정
+  const confirmLocation = () => {
+    if (!tempLocation) return;
+    set('lat', tempLocation.lat);
+    set('lng', tempLocation.lng);
+    set('venue', tempLocation.address);
+    setIsMapOpen(false);
+  };
 
   const addSong = () => {
     if (!newSongTitle.trim()) return;
@@ -385,22 +399,42 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
         </div>
       </div>
 
+      {/* 장소 선택 지도 모달 */}
       {isMapOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => e.target === e.currentTarget && setIsMapOpen(false)}>
-          <div style={{ background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '400px', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid #eee' }}>
-              <h3 style={{ margin: 0, fontSize: '16px', color: '#101828' }}>지도에서 장소 선택</h3>
-              <button onClick={() => setIsMapOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={20} color="#101828" /></button>
+        <div className={styles.mapModalOverlay} onClick={(e) => e.target === e.currentTarget && setIsMapOpen(false)}>
+          <div className={styles.mapModalContainer}>
+            <div className={styles.mapModalHeader}>
+              <h3>장소 선택</h3>
+              <button onClick={() => setIsMapOpen(false)}><X size={20} color="#101828" /></button>
             </div>
-            <div style={{ padding: '16px' }}>
-              <div style={{ height: '300px', borderRadius: '8px', overflow: 'hidden' }}>
-                <MapContainer center={[mapCenter.lat, mapCenter.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  <MapClickHandler onClick={handleMapClick} />
-                  <Marker position={[mapCenter.lat, mapCenter.lng]} />
-                </MapContainer>
+            
+            <div className={styles.mapContainerArea}>
+              <MapContainer 
+                center={tempLocation ? [tempLocation.lat, tempLocation.lng] : [37.5665, 126.9780]} 
+                zoom={15} 
+                style={{ width: '100%', height: '100%' }}
+              >
+                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                <MapClickHandler onClick={handleMapClick} />
+                {tempLocation && <Marker position={[tempLocation.lat, tempLocation.lng]} />}
+              </MapContainer>
+            </div>
+
+            <div className={styles.mapModalFooter}>
+              <div className={styles.selectedAddress}>
+                {tempLocation ? (
+                  <span>📍 {tempLocation.address}</span>
+                ) : (
+                  <span style={{ color: '#98A2B3' }}>지도를 클릭하여 장소를 선택해주세요.</span>
+                )}
               </div>
-              <p style={{ marginTop: '12px', fontSize: '13px', color: '#667085', textAlign: 'center', marginBottom: 0 }}>지도를 클릭하면 핀이 이동하고 주소가 자동 입력됩니다.</p>
+              <button 
+                className={styles.confirmBtn} 
+                disabled={!tempLocation || isGeocoding}
+                onClick={confirmLocation}
+              >
+                {isGeocoding ? '주소 확인 중...' : '이 위치로 선택'}
+              </button>
             </div>
           </div>
         </div>
