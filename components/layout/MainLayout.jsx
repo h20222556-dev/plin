@@ -29,10 +29,14 @@ export default function MainLayout() {
   const { user } = useAuth();
   const handleSaveRecord = async (form) => {
     try {
-      await addRecord(form);
+      console.log('MainLayout starting save:', form);
+      const result = await addRecord(form);
+      console.log('MainLayout save success:', result);
       setIsAddOpen(false);
     } catch (e) {
-      // addRecord already shows alert on error
+      console.error('MainLayout save error:', e);
+      alert(`저장에 실패했습니다: ${e.message || '알 수 없는 오류'}`);
+      throw e; // Modal에서 로딩 상태를 해제할 수 있도록 다시 던짐
     }
   };
 

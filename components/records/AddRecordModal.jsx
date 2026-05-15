@@ -36,6 +36,8 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null);
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const [form, setForm] = useState({
     photos: [],
     concertName: initialData?.name || '',
@@ -83,13 +85,25 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     set('tags', form.tags.filter((_, i) => i !== index));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.concertName || !form.date) {
       alert('공연명과 날짜를 입력해주세요.');
       return;
     }
-    if (onSave) onSave(form);
-    onClose();
+    
+    setIsSaving(true);
+    try {
+      console.log('Attempting to save form:', form);
+      if (onSave) {
+        await onSave(form);
+      }
+      onClose();
+    } catch (err) {
+      console.error('Save failed in modal:', err);
+      // alert is already handled by useRecords or MainLayout
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handlePhotoUpload = (e) => {
@@ -117,8 +131,13 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <div key={s} className={`${styles.stepDot} ${step >= s ? styles.stepDotActive : ''}`} />
             ))}
           </div>
-          <button type="button" className={styles.saveTextBtn} onClick={step === 3 ? handleSave : () => setStep(step + 1)}>
-            {step === 3 ? '완료' : '다음'}
+          <button 
+            type="button" 
+            className={styles.saveTextBtn} 
+            onClick={step === 3 ? handleSave : () => setStep(step + 1)}
+            disabled={isSaving}
+          >
+            {isSaving ? '저장 중...' : (step === 3 ? '완료' : '다음')}
           </button>
         </div>
 
