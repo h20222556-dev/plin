@@ -18,13 +18,8 @@ const TABS = [
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState('feed');
-  const { posts, loading, createPost, toggleLike, onRemovePost } = useCommunity();
+  const { posts, loading, createPost, toggleLike, deletePost } = useCommunity();
   const { user } = useAuth();
-
-  const onDeletePost = async (postId) => {
-    if (!onRemovePost) return;
-    await onRemovePost(postId);
-  };
   const [showNewPost, setShowNewPost] = useState(false);
   const [activeChat, setActiveChat] = useState(null); // { roomId, recipientId, recipientNickname, expiresAt }
   const [selectedUser, setSelectedUser] = useState(null);
@@ -102,7 +97,7 @@ export default function CommunityPage() {
                   post={post}
                   onLike={() => toggleLike(post.id, post.likes, post.isLiked)}
                   onAuthorClick={(author) => setSelectedUser(author)}
-                  deletePost={onDeletePost}
+                  deletePost={deletePost}
                 />
               ))}
             </div>
