@@ -119,8 +119,8 @@ export default function CommunityPage() {
       {showNewPost && (
         <NewPostModal
           onClose={() => setShowNewPost(false)}
-          onPost={async (post) => {
-            await createPost(post.content, post.tags, post.emotion, null);
+          onPost={async (postData) => {
+            await createPost(postData.content, postData.tags, postData.emotion, postData.performanceId);
             setShowNewPost(false);
           }}
         />

@@ -1,12 +1,13 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { emotionOptions } from '@/lib/mockData';
+import { useRecords } from '@/lib/hooks/useRecords';
+import { Music, Check } from 'lucide-react';
 import styles from './NewPostModal.module.css';
 
 export default function NewPostModal({ onClose, onPost }) {
+  const { records } = useRecords();
   const [content, setContent] = useState('');
-  const [concert, setConcert] = useState('');
+  const [selectedPerfId, setSelectedPerfId] = useState(null);
   const [emotion, setEmotion] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
@@ -14,11 +15,13 @@ export default function NewPostModal({ onClose, onPost }) {
     if (!content.trim()) return;
     setIsPosting(true);
     try {
+      const selectedPerf = records.find(r => r.id === selectedPerfId);
       await onPost({
         content: content.trim(),
-        concert,
+        performanceId: selectedPerfId,
+        concert: selectedPerf?.concertName || '',
         emotion,
-        tags: concert ? [concert] : [],
+        tags: selectedPerf ? [selectedPerf.concertName] : [],
       });
     } finally {
       setIsPosting(false);
@@ -46,13 +49,32 @@ export default function NewPostModal({ onClose, onPost }) {
           />
 
           <div className={styles.fieldGroup}>
-            <label className={styles.label}>공연명 (선택)</label>
-            <input
-              className="input-field"
-              placeholder="어떤 공연에 대한 이야기인가요?"
-              value={concert}
-              onChange={e => setConcert(e.target.value)}
-            />
+            <label className={styles.label}>관련 공연 선택 (선택)</label>
+            <div className={styles.perfList}>
+              <button 
+                className={`${styles.perfItem} ${!selectedPerfId ? styles.perfActive : ''}`}
+                onClick={() => setSelectedPerfId(null)}
+              >
+                공연 없음
+              </button>
+              {records.map(perf => (
+                <button
+                  key={perf.id}
+                  className={`${styles.perfItem} ${selectedPerfId === perf.id ? styles.perfActive : ''}`}
+                  onClick={() => setSelectedPerfId(perf.id)}
+                >
+                  <Music size={14} style={{ marginRight: 4 }} />
+                  <div className={styles.perfInfo}>
+                    <span className={styles.perfName}>{perf.concertName}</span>
+                    <span className={styles.perfDate}>{perf.date}</span>
+                  </div>
+                  {selectedPerfId === perf.id && <Check size={14} style={{ marginLeft: 4 }} />}
+                </button>
+              ))}
+            </div>
+            {records.length === 0 && (
+              <p className={styles.emptyNote}>작성된 공연 기록이 없습니다.</p>
+            )}
           </div>
 
           <div className={styles.fieldGroup}>
