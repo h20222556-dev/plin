@@ -8,7 +8,8 @@ import { supabase } from '@/lib/supabase';
 
 export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
   const { user } = useAuth();
-  const isAuthor = user && user.id === post.author.id;
+  const authorId = post.author?.id;
+  const isAuthor = user && user.id === authorId;
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
@@ -69,8 +70,8 @@ export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
           </div>
           <div className={styles.authorInfo}>
             <div className={styles.authorName}>
-              {post.author.nickname}
-              {!post.author.isPublic && <span className={styles.privateTag}>비공개</span>}
+              {post.author?.nickname || '알 수 없는 유저'}
+              {post.author && !post.author.isPublic && <span className={styles.privateTag}>비공개</span>}
             </div>
             <div className={styles.authorMeta}>
               <span className={styles.concertTag}>
