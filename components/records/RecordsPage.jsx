@@ -5,11 +5,12 @@ import styles from './RecordsPage.module.css';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useAuth } from '@/lib/hooks/useAuth';
 import dynamic from 'next/dynamic';
-const RecordMap = dynamic(() => import('./RecordMap'), { ssr: false });
 import RecordList from './RecordList';
 import RecordCalendar from './RecordCalendar';
 import RecordBottomSheet from './RecordBottomSheet';
 import { Map as MapIcon, List, Calendar } from 'lucide-react';
+
+const RecordMap = dynamic(() => import('./RecordMap'), { ssr: false, loading: () => <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#667085'}}>지도를 불러오는 중...</div> });
 
 const VIEWS = [
   { id: 'map', label: '지도', icon: MapIcon },
@@ -57,7 +58,7 @@ export default function RecordsPage({ onNavigate }) {
           <div style={{ textAlign: 'center', padding: '100px' }}>불러오는 중...</div>
         ) : (
           <>
-            {view === 'map' && <RecordMap records={records} onRecordSelect={handleRecordSelect} />}
+            {view === 'map' && <RecordMap records={records} onSelectRecord={handleRecordSelect} />}
             {view === 'list' && <RecordList records={records} onRecordSelect={handleRecordSelect} />}
             {view === 'calendar' && <RecordCalendar records={records} onRecordSelect={handleRecordSelect} />}
           </>

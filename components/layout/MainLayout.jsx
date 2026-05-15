@@ -7,8 +7,10 @@ import ConcertsPage from '@/components/concerts/ConcertsPage';
 import CommunityPage from '@/components/community/CommunityPage';
 import ProfilePage from '@/components/profile/ProfilePage';
 import dynamic from 'next/dynamic';
+import { Map, Music, Plus, MessageCircle, User } from 'lucide-react';
+import { useRecords } from '@/lib/hooks/useRecords';
+
 const AddRecordModal = dynamic(() => import('@/components/records/AddRecordModal'), { ssr: false });
-import { Map, Music, Plus, MessageCircle, User, Search } from 'lucide-react';
 
 const TABS = [
   { id: 'records', label: '지도', icon: Map },
@@ -21,6 +23,16 @@ const TABS = [
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState('records');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const { addRecord } = useRecords();
+
+  const handleSaveRecord = async (form) => {
+    try {
+      await addRecord(form);
+      setIsAddOpen(false);
+    } catch (e) {
+      // addRecord already shows alert on error
+    }
+  };
 
   const renderPage = () => {
     switch (activeTab) {
@@ -82,7 +94,10 @@ export default function MainLayout() {
 
       {/* Global Add Record Modal */}
       {isAddOpen && (
-        <AddRecordModal onClose={() => setIsAddOpen(false)} />
+        <AddRecordModal
+          onClose={() => setIsAddOpen(false)}
+          onSave={handleSaveRecord}
+        />
       )}
     </div>
   );
