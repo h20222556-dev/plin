@@ -18,11 +18,11 @@ const TABS = [
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState('feed');
-  const { posts, loading, createPost, toggleLike, deletePost } = useCommunity();
+  const { posts, loading, createPost, toggleLike, removePostById } = useCommunity();
 
   const handleDeletePost = async (postId) => {
-    if (!deletePost) return;
-    await deletePost(postId);
+    if (!removePostById) return;
+    await removePostById(postId);
   };
   const { user } = useAuth();
   const [showNewPost, setShowNewPost] = useState(false);

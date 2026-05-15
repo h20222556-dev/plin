@@ -28,7 +28,7 @@ export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
     alert('게시글 링크가 클립보드에 복사되었습니다.');
   };
 
-  // deletePost를 PostCard 안에서 직접 정의 (prop 의존 없이 자급자족)
+  // 게시글 삭제 로직 (supabase와 직접 통신하여 처리)
   const handleDelete = async () => {
     if (!user) {
       alert('로그인이 필요합니다.');
