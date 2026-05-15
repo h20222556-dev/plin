@@ -1,156 +1,157 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import styles from './RecordMap.module.css';
 
+// Leaflet 기본 아이콘 깨짐 방지
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// 지도 중심 이동 핸들러 컴포넌트
+function ChangeView({ center, zoom }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView(center, zoom);
+  }, [center, zoom, map]);
+  return null;
+}
+
 export default function RecordMap({ records, onSelectRecord }) {
-  const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.9780 });
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY,
-    language: 'ko',
-    region: 'KR'
-  });
-
-  const mapContainerStyle = { width: '100%', height: '100%' };
+  const [center, setCenter] = useState([37.5665, 126.9780]);
+  const [zoom, setZoom] = useState(13);
 
   useEffect(() => {
-    // 레코드가 있으면 첫 번째 레코드 위치로 중심 이동 (또는 Bounds 계산 가능)
-    if (isLoaded && records.length > 0) {
+    if (records.length > 0) {
       const validRecords = records.filter(r => r.lat && r.lng);
       if (validRecords.length > 0) {
-        setMapCenter({ lat: validRecords[0].lat, lng: validRecords[0].lng });
+        setCenter([validRecords[0].lat, validRecords[0].lng]);
       }
     }
-  }, [records, isLoaded]);
+  }, [records]);
 
-  if (!isLoaded) {
-    return (
-      <div className={styles.mapWrapper}>
-        <div className={styles.map} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          지도를 불러오는 중...
+  // 커스텀 마커 아이콘 생성 함수
+  const createCustomIcon = (emotion) => {
+    return L.divIcon({
+      className: 'plin-leaflet-marker',
+      html: `
+        <div class="plin-marker-inner">
+          <span>${emotion || '🎵'}</span>
+          <div class="plin-marker-pulse"></div>
         </div>
-      </div>
-    );
-  }
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 40],
+    });
+  };
+
+  // 이번 달 기록 개수 계산
+  const currentMonth = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const monthlyRecords = records.filter(r => {
+    const d = new Date(r.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
 
   return (
     <div className={styles.mapWrapper}>
-      <GoogleMap
-        mapContainerClassName={styles.map}
-        mapContainerStyle={mapContainerStyle}
-        center={mapCenter}
-        zoom={12}
-        options={{ disableDefaultUI: true, zoomControl: true }}
+      <MapContainer 
+        center={center} 
+        zoom={zoom} 
+        className={styles.map}
+        zoomControl={true}
       >
+        <ChangeView center={center} zoom={zoom} />
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        />
+        
         {records.map((record) => {
           if (!record.lat || !record.lng) return null;
           
           return (
-            <OverlayView
-              key={record.id}
-              position={{ lat: record.lat, lng: record.lng }}
-              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-              getPixelPositionOffset={(width, height) => ({ x: -(width / 2), y: -height })}
+            <Marker 
+              key={record.id} 
+              position={[record.lat, record.lng]}
+              icon={createCustomIcon(record.emotion)}
+              eventHandlers={{
+                click: () => onSelectRecord(record),
+              }}
             >
-              <div 
-                className="plin-marker-container"
-                onClick={() => onSelectRecord(record)}
-              >
-                <div className="plin-marker">
-                  <div className="plin-marker-inner">
-                    <span>{record.emotion || '🎵'}</span>
-                  </div>
-                  <div className="plin-marker-pulse"></div>
-                </div>
-                <div className="plin-popup">
+              <Popup>
+                <div className={styles.popupContent}>
                   <strong>{record.concertName}</strong>
                   <span>{record.date}</span>
                 </div>
-              </div>
-            </OverlayView>
+              </Popup>
+            </Marker>
           );
         })}
-      </GoogleMap>
-      <style>{`
-        .plin-marker-container {
-          position: relative;
-          cursor: pointer;
-        }
-        .plin-marker {
-          position: relative;
-          width: 48px;
-          height: 48px;
-          margin-bottom: 10px;
+      </MapContainer>
+
+      {/* Overlays */}
+      <div className={styles.mapOverlayTop}>
+        <div className={styles.mapStats}>
+          <span>📍 {records.length}개 공연</span>
+        </div>
+      </div>
+
+      <div className={styles.mapOverlayBottom}>
+        <div className={styles.monthlyStats}>
+          이번 달 기록 <strong>{monthlyRecords.length}개</strong>
+        </div>
+      </div>
+
+      <style jsx global>{`
+        .plin-leaflet-marker {
+          background: none;
+          border: none;
         }
         .plin-marker-inner {
-          position: absolute;
-          top: 0; left: 0;
+          position: relative;
           width: 40px; height: 40px;
-          background: linear-gradient(135deg, #2855D4, #5B7FF5);
+          background: linear-gradient(135deg, #0054CB, #3B82F6);
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 4px 16px rgba(40,85,212,0.35);
+          box-shadow: 0 4px 12px rgba(0,84,203,0.3);
         }
         .plin-marker-inner span {
           transform: rotate(45deg);
           font-size: 18px;
-          display: block;
         }
         .plin-marker-pulse {
           position: absolute;
           top: 0; left: 0;
-          width: 40px; height: 40px;
-          background: rgba(40,85,212,0.25);
+          width: 100%; height: 100%;
+          background: rgba(0,84,203,0.2);
           border-radius: 50%;
           animation: markerPulse 2s ease-out infinite;
+          z-index: -1;
         }
         @keyframes markerPulse {
           0% { transform: scale(1); opacity: 0.6; }
           100% { transform: scale(2.5); opacity: 0; }
         }
-        .plin-popup {
-          background: white;
-          padding: 8px 12px;
-          border-radius: 8px;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          text-align: center;
-          position: absolute;
-          bottom: 100%;
-          left: 50%;
-          transform: translateX(-50%);
-          white-space: nowrap;
-          pointer-events: none;
-          opacity: 0;
-          transition: opacity 0.2s;
+        .leaflet-popup-content-wrapper {
+          border-radius: 12px;
+          padding: 0;
+          overflow: hidden;
         }
-        .plin-marker-container:hover .plin-popup {
-          opacity: 1;
-        }
-        .plin-popup strong {
-          display: block;
-          font-size: 13px;
-          font-weight: 700;
-          color: #1A1A2E;
-          margin-bottom: 4px;
-        }
-        .plin-popup span {
-          font-size: 11px;
-          color: #8A8AAA;
+        .leaflet-popup-content {
+          margin: 12px;
+          min-width: 120px;
         }
       `}</style>
-
-      {/* Record count overlay */}
-      <div className={styles.mapOverlay}>
-        <div className={styles.mapStats}>
-          <span>📍 {records.length}개 공연</span>
-        </div>
-      </div>
     </div>
   );
 }

@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
@@ -9,6 +11,14 @@ import {
   Music, Lock, Globe, Check, Plus, Trash2,
   Map as MapIcon, Image as ImageIcon, Flame, Heart, Star
 } from 'lucide-react';
+
+// Leaflet 기본 아이콘 깨짐 방지
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 const WEATHER_OPTIONS = [
   { id: 'sunny', icon: Sun, label: '맑음' },
@@ -25,37 +35,41 @@ const PIN_OPTIONS = [
   { id: 'star', icon: Star, label: '최고' },
 ];
 
+// 지도 클릭 이벤트 처리 컴포넌트
+function MapClickHandler({ onClick }) {
+  useMapEvents({
+    click: (e) => {
+      onClick(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return null;
+}
+
 export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 37.566826, lng: 126.978656 });
 
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY,
-    language: 'ko',
-    region: 'KR'
-  });
-
-  const mapContainerStyle = { width: '100%', height: '300px', borderRadius: '8px' };
-
-  const handleMapClick = (e) => {
-    const lat = e.latLng.lat();
-    const lng = e.latLng.lng();
+  const handleMapClick = async (lat, lng) => {
     setMapCenter({ lat, lng });
-    
-    // Reverse geocoding
-    const geocoder = new window.google.maps.Geocoder();
-    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-      if (status === 'OK' && results[0]) {
-        set('venue', results[0].formatted_address);
-      }
-    });
     set('lat', lat);
     set('lng', lng);
+    
+    // Reverse geocoding (Nominatim API)
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
+      const data = await res.json();
+      if (data && data.display_name) {
+        set('venue', data.display_name);
+      }
+    } catch (err) {
+      console.warn('Reverse geocoding failed:', err);
+    }
+    
     setIsMapOpen(false);
   };
+
   const [form, setForm] = useState({
     photos: [],
     concertName: initialData?.name || '',
@@ -67,7 +81,9 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     setlist: [],
     isPublic: true,
     tags: initialData?.genre || [],
-    pinIcon: 'music'
+    pinIcon: 'music',
+    lat: null,
+    lng: null
   });
   
   const [newSongTitle, setNewSongTitle] = useState('');
@@ -110,7 +126,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     onClose();
   };
 
-  // Local photo preview
   const handlePhotoUpload = (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
@@ -121,7 +136,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     }
     const newPhotos = files.map(file => URL.createObjectURL(file));
     set('photos', [...form.photos, ...newPhotos]);
-    // TODO: Supabase Storage 업로드 연동
   };
 
   return (
@@ -143,12 +157,11 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
         </div>
 
         <div className={styles.content}>
-          {/* STEP 1: Basic Info & Photos */}
+          {/* STEP 1 */}
           {step === 1 && (
             <div className={styles.stepContainer}>
               <h2 className={styles.stepTitle}>어떤 공연이었나요?</h2>
               
-              {/* Photo Upload */}
               <div className={styles.photoUploadArea}>
                 <button className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
                   <Camera size={28} color="#98A2B3" />
@@ -174,7 +187,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                 </div>
               </div>
 
-              {/* Form Fields */}
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>공연명</label>
                 <input 
@@ -197,7 +209,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
 
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>관람 날짜</label>
-                {/* Simplified native date picker designed to look like a dial on mobile */}
                 <div className={styles.datePickerContainer}>
                   <Calendar size={20} color="#667085" />
                   <input 
@@ -229,7 +240,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
             </div>
           )}
 
-          {/* STEP 2: Weather, Pin, and Memo */}
+          {/* STEP 2 */}
           {step === 2 && (
             <div className={styles.stepContainer}>
               <h2 className={styles.stepTitle}>그 날의 분위기를 기록하세요</h2>
@@ -304,7 +315,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
             </div>
           )}
 
-          {/* STEP 3: Setlist & Settings */}
+          {/* STEP 3 */}
           {step === 3 && (
             <div className={styles.stepContainer}>
               <h2 className={styles.stepTitle}>셋리스트와 설정을 마무리해요</h2>
@@ -382,19 +393,13 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <button onClick={() => setIsMapOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={20} color="#101828" /></button>
             </div>
             <div style={{ padding: '16px' }}>
-              {!isLoaded ? (
-                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#667085' }}>지도 불러오는 중...</div>
-              ) : (
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
-                  center={mapCenter}
-                  zoom={15}
-                  onClick={handleMapClick}
-                  options={{ disableDefaultUI: true, zoomControl: true }}
-                >
-                  <Marker position={mapCenter} />
-                </GoogleMap>
-              )}
+              <div style={{ height: '300px', borderRadius: '8px', overflow: 'hidden' }}>
+                <MapContainer center={[mapCenter.lat, mapCenter.lng]} zoom={15} style={{ width: '100%', height: '100%' }}>
+                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  <MapClickHandler onClick={handleMapClick} />
+                  <Marker position={[mapCenter.lat, mapCenter.lng]} />
+                </MapContainer>
+              </div>
               <p style={{ marginTop: '12px', fontSize: '13px', color: '#667085', textAlign: 'center', marginBottom: 0 }}>지도를 클릭하면 핀이 이동하고 주소가 자동 입력됩니다.</p>
             </div>
           </div>
