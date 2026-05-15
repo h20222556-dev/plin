@@ -201,3 +201,22 @@
   font-weight: 600;
   text-decoration: underline;
 }
+
+.demoBtn {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: none;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+
+.demoBtn:hover {
+  color: var(--text-secondary);
+  background-color: var(--bg-surface);
+}

@@ -1,14 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './MainLayout.module.css';
 import RecordsPage from '@/components/records/RecordsPage';
 import ConcertsPage from '@/components/concerts/ConcertsPage';
 import CommunityPage from '@/components/community/CommunityPage';
 import ProfilePage from '@/components/profile/ProfilePage';
 import dynamic from 'next/dynamic';
-import { Map, Music, Plus, MessageCircle, User } from 'lucide-react';
+import { Map, Music, Plus, MessageCircle, User, Info } from 'lucide-react';
 import { useRecords } from '@/lib/hooks/useRecords';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 
 const AddRecordModal = dynamic(() => import('@/components/records/AddRecordModal'), { ssr: false });
 
@@ -23,56 +25,8 @@ const TABS = [
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState('records');
   const [isAddOpen, setIsAddOpen] = useState(false);
-  const { addRecord, records } = useRecords();
+  const { addRecord } = useRecords();
   const { user } = useAuth();
-
-  // 샘플 데이터 생성 로직 (최초 1회)
-  useEffect(() => {
-    const seedData = async () => {
-      if (!user || records.length > 0 || localStorage.getItem('plin_seeded')) return;
-
-      try {
-        const sampleRecord = {
-          concertName: '2024 IU H.E.R. WORLD TOUR CONCERT IN SEOUL',
-          artist: 'IU (아이유)',
-          date: '2024-03-02',
-          venue: 'KSPO DOME (올림픽체조경기장)',
-          lat: 37.5206,
-          lng: 127.1274,
-          weather: 'sunny',
-          pinIcon: 'heart',
-          memo: '아이유의 압도적인 라이브와 화려한 연출... 홀씨 무대가 특히 인상적이었어요! 360도 무대라서 어디서든 잘 보였고 팬서비스도 최고였습니다. 💜',
-          setlist: ['홀씨', 'Jam Jam', 'Ah puh', '삐삐', 'Obliviate', 'Celebrity', 'Blueming', '에이트', 'Love wins all'],
-          tags: ['아이유', '단독콘서트', '감동', 'KSPO_DOME'],
-          photos: ['https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=1000'],
-          isPublic: true
-        };
-
-        const perf = await addRecord(sampleRecord);
-        if (perf) {
-          // 커뮤니티 게시글도 함께 생성
-          const { error: postError } = await supabase
-            .from('posts')
-            .insert([{
-              user_id: user.id,
-              performance_id: perf.id,
-              content: '드디어 다녀온 아이유 콘서트! 셋리스트부터 분위기까지 모든 게 완벽했습니다. 유애나들과 함께 떼창하던 순간이 잊혀지지 않네요. PLIN 지도에 첫 기록을 남겨보니 정말 뿌듯합니다! 💜',
-              tags: ['아이유', '후기', 'PLIN', '유애나'],
-              likes_count: 0
-            }]);
-          
-          if (!postError) {
-            localStorage.setItem('plin_seeded', 'true');
-            console.log('Sample data seeded successfully');
-          }
-        }
-      } catch (err) {
-        console.error('Failed to seed sample data:', err);
-      }
-    };
-
-    seedData();
-  }, [user, records.length, addRecord]);
   const handleSaveRecord = async (form) => {
     try {
       await addRecord(form);
@@ -92,6 +46,14 @@ export default function MainLayout() {
     }
   };
 
+  const { isDemoMode } = useAuth();
+  const [showToast, setShowToast] = useState(false);
+
+  const handleDemoBadgeClick = () => {
+    setShowToast(true);
+    setTimeout(() => setShowToast(false), 3000);
+  };
+
   return (
     <div className={styles.layout}>
       {/* Top Header for Home navigation */}
@@ -99,7 +61,20 @@ export default function MainLayout() {
         <button className={styles.logoBtn} onClick={() => setActiveTab('records')}>
           <h1 className={styles.logoText}>PLIN</h1>
         </button>
+        {isDemoMode && (
+          <button className={styles.demoBadge} onClick={handleDemoBadgeClick}>
+            <span>데모 모드</span>
+            <Info size={14} />
+          </button>
+        )}
       </header>
+
+      {/* Toast Notification */}
+      {showToast && (
+        <div className={styles.toast}>
+          실제 데이터는 저장되지 않습니다. 회원가입하면 기록이 영구 저장됩니다.
+        </div>
+      )}
 
       {/* Page Content */}
       <main className={styles.main}>
