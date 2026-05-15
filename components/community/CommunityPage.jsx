@@ -18,11 +18,11 @@ const TABS = [
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState('feed');
-  const { posts, loading, createPost, toggleLike, removePostById } = useCommunity();
+  const { posts, loading, createPost, toggleLike, deletePost } = useCommunity();
 
   const handleDeletePost = async (postId) => {
-    if (!removePostById) return;
-    await removePostById(postId);
+    if (!deletePost) return;
+    await deletePost(postId);
   };
   const { user } = useAuth();
   const [showNewPost, setShowNewPost] = useState(false);
@@ -96,7 +96,7 @@ export default function CommunityPage() {
             </div>
           ) : (
             <div className="stagger">
-              {posts.map(post => (
+              {(posts ?? []).map(post => (
                 <PostCard
                   key={post.id}
                   post={post}
