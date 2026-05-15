@@ -13,12 +13,16 @@ import {
 } from 'lucide-react';
 
 // Leaflet 기본 아이콘 깨짐 방지
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+const fixLeafletIcon = () => {
+  if (typeof window !== 'undefined') {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  }
+};
 
 const WEATHER_OPTIONS = [
   { id: 'sunny', icon: Sun, label: '맑음' },
@@ -53,6 +57,10 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [isMapOpen, setIsMapOpen] = useState(false);
   const [tempLocation, setTempLocation] = useState(null); // { lat, lng, address }
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  useEffect(() => {
+    fixLeafletIcon();
+  }, []);
 
   const [form, setForm] = useState({
     photos: [],

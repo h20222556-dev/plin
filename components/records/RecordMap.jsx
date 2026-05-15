@@ -6,13 +6,17 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './RecordMap.module.css';
 
-// Leaflet 기본 아이콘 깨짐 방지
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Leaflet 기본 아이콘 깨짐 방지 (useEffect 내에서 처리 권장)
+const fixLeafletIcon = () => {
+  if (typeof window !== 'undefined') {
+    delete L.Icon.Default.prototype._getIconUrl;
+    L.Icon.Default.mergeOptions({
+      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    });
+  }
+};
 
 // 지도 중심 이동 핸들러 컴포넌트
 function ChangeView({ center, zoom }) {
@@ -26,6 +30,10 @@ function ChangeView({ center, zoom }) {
 export default function RecordMap({ records, onSelectRecord }) {
   const [center, setCenter] = useState([37.5665, 126.9780]);
   const [zoom, setZoom] = useState(13);
+
+  useEffect(() => {
+    fixLeafletIcon();
+  }, []);
 
   useEffect(() => {
     if (records.length > 0) {
