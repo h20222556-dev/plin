@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { mockConcerts, mockRecords } from '@/lib/mockData';
+import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './HomePage.module.css';
 import { Search, Music, Calendar, Hash, ChevronRight } from 'lucide-react';
 
@@ -11,6 +11,12 @@ export default function HomePage({ onNavigate }) {
   const [search, setSearch] = useState('');
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef(null);
+  
+  // Supabase 기록 불러오기
+  const { records, loading } = useRecords();
+
+  // 모크 콘서트 대체 빈 배열
+  const recommendedConcerts = [];
 
   // Close search dropdown when clicking outside
   useEffect(() => {
@@ -74,21 +80,25 @@ export default function HomePage({ onNavigate }) {
             <h2 className={styles.sectionTitle}>추천 공연</h2>
           </div>
           <div className={styles.horizontalScroll}>
-            {mockConcerts.slice(0, 5).map((concert) => (
-              <button 
-                key={concert.id} 
-                className={styles.concertCard}
-                onClick={() => onNavigate('concerts')}
-              >
-                <div className={styles.artistSymbol}>
-                  <Music size={48} color="#EAECF0" />
-                </div>
-                <div className={styles.concertInfo}>
-                  <h3 className={styles.concertName}>{concert.name}</h3>
-                  <p className={styles.artistName}>{concert.artist}</p>
-                </div>
-              </button>
-            ))}
+            {recommendedConcerts.length > 0 ? (
+              recommendedConcerts.slice(0, 5).map((concert) => (
+                <button 
+                  key={concert.id} 
+                  className={styles.concertCard}
+                  onClick={() => onNavigate('concerts')}
+                >
+                  <div className={styles.artistSymbol}>
+                    <Music size={48} color="#EAECF0" />
+                  </div>
+                  <div className={styles.concertInfo}>
+                    <h3 className={styles.concertName}>{concert.name}</h3>
+                    <p className={styles.artistName}>{concert.artist}</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <p style={{ color: '#98A2B3', fontSize: '14px', padding: '16px 0' }}>예정된 공연이 없습니다.</p>
+            )}
           </div>
         </section>
 
@@ -101,21 +111,27 @@ export default function HomePage({ onNavigate }) {
             <ChevronRight size={20} color="#667085" />
           </div>
           <div className={styles.recordList}>
-            {mockRecords.slice(0, 3).map((record) => (
-              <button 
-                key={record.id} 
-                className={styles.recordItem}
-                onClick={() => onNavigate('profile')}
-              >
-                <div className={styles.recordSymbol}>
-                   <Calendar size={24} color="#0054CB" />
-                </div>
-                <div className={styles.recordInfo}>
-                  <h3 className={styles.recordTitle}>{record.concertName}</h3>
-                  <p className={styles.recordDate}>{record.date}</p>
-                </div>
-              </button>
-            ))}
+            {loading ? (
+               <p style={{ color: '#98A2B3', fontSize: '14px' }}>기록을 불러오는 중...</p>
+            ) : records.length > 0 ? (
+              records.slice(0, 3).map((record) => (
+                <button 
+                  key={record.id} 
+                  className={styles.recordItem}
+                  onClick={() => onNavigate('profile')}
+                >
+                  <div className={styles.recordSymbol}>
+                     <Calendar size={24} color="#0054CB" />
+                  </div>
+                  <div className={styles.recordInfo}>
+                    <h3 className={styles.recordTitle}>{record.concertName}</h3>
+                    <p className={styles.recordDate}>{record.date}</p>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <p style={{ color: '#98A2B3', fontSize: '14px', padding: '16px 0' }}>저장된 공연 기록이 없습니다.</p>
+            )}
           </div>
         </section>
       </main>

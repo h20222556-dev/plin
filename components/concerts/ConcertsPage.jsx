@@ -1,19 +1,23 @@
 'use client';
 
 import { useState } from 'react';
-import { mockConcerts, genreOptions } from '@/lib/mockData';
+import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ConcertsPage.module.css';
 import ConcertDetailModal from './ConcertDetailModal';
 import AddRecordModal from '../records/AddRecordModal';
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
 
 export default function ConcertsPage({ onNavigate }) {
-  const [concerts, setConcerts] = useState(mockConcerts);
+  // 모크 데이터 대신 빈 배열 사용 (향후 Supabase에서 불러오기)
+  const [concerts, setConcerts] = useState([]);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [recordContext, setRecordContext] = useState(null);
+  
+  // Supabase 기록 훅
+  const { addRecord } = useRecords();
 
   const toggleBookmark = (id) => {
     setConcerts(prev => prev.map(c => c.id === id ? { ...c, isBookmarked: !c.isBookmarked } : c));
@@ -27,6 +31,17 @@ export default function ConcertsPage({ onNavigate }) {
       (activeFilter === 'soldout' && c.status === 'sold_out');
     return matchSearch && matchFilter;
   });
+
+  const handleSaveRecord = async (data) => {
+    try {
+      await addRecord(data);
+      alert('공연 기록이 성공적으로 저장되었습니다!');
+      setIsAddingRecord(false);
+    } catch (err) {
+      // 에러 처리는 addRecord 내에서 기본적으로 알림을 띄웁니다.
+      console.error(err);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -154,7 +169,7 @@ export default function ConcertsPage({ onNavigate }) {
           <div className="empty-state">
             <Search size={48} color="#98A2B3" />
             <h3>공연을 찾을 수 없어요</h3>
-            <p>다른 검색어나 필터를 시도해보세요</p>
+            <p>데이터가 존재하지 않습니다</p>
           </div>
         )}
       </div>
@@ -176,10 +191,7 @@ export default function ConcertsPage({ onNavigate }) {
         <AddRecordModal
           initialData={recordContext}
           onClose={() => setIsAddingRecord(false)}
-          onSave={(data) => {
-            console.log('Record saved:', data);
-            setIsAddingRecord(false);
-          }}
+          onSave={handleSaveRecord}
         />
       )}
     </div>
