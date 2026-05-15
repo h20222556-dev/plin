@@ -90,7 +90,7 @@ export default function CommunityPage() {
         <div className={styles.feed}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>불러오는 중...</div>
-          ) : posts.length === 0 ? (
+          ) : (posts ?? []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
               아직 작성된 글이 없습니다.<br />첫 번째 글을 남겨보세요! 🎵
             </div>
@@ -102,7 +102,7 @@ export default function CommunityPage() {
                   post={post}
                   onLike={() => toggleLike(post.id, post.likes, post.isLiked)}
                   onAuthorClick={(author) => setSelectedUser(author)}
-                  onDelete={handleDeletePost}
+                  deletePost={handleDeletePost}
                 />
               ))}
             </div>

@@ -6,7 +6,7 @@ import { Heart, MessageCircle, Share2, Music, User, ArrowUp, Trash2 } from 'luci
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
-export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
+export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
   const { user } = useAuth();
   const authorId = post.author?.id;
   const isAuthor = user && user.id === authorId;
@@ -39,16 +39,9 @@ export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
 
     setIsDeleting(true);
     try {
-      const { error } = await supabase
-        .from('posts')
-        .delete()
-        .eq('id', post.id)
-        .eq('user_id', user.id); // RLS 이중 보호
-
-      if (error) throw error;
-
-      // 부모 컴포넌트에도 알림 (있을 경우)
-      if (onDelete) onDelete(post.id);
+      if (deletePost) {
+        await deletePost(post.id);
+      }
     } catch (err) {
       console.error('게시글 삭제 실패:', err.message);
       alert('게시글 삭제에 실패했습니다.');
@@ -117,8 +110,8 @@ export default function PostCard({ post, onLike, onAuthorClick, onDelete }) {
           <span>공유</span>
         </button>
 
-        {/* 본인 게시글만 삭제 버튼 표시 */}
-        {isAuthor && (
+        {/* 본인 게시글이고 삭제 함수가 전달되었을 때만 삭제 버튼 표시 */}
+        {isAuthor && deletePost && (
           <button
             className={styles.actionBtn}
             onClick={handleDelete}
