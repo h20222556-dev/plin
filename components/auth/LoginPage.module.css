@@ -159,6 +159,20 @@
   color: #F04438;
   margin-bottom: 16px;
   text-align: center;
+  background-color: #FEF3F2;
+  padding: 10px;
+  border-radius: var(--radius-md);
+}
+
+.success {
+  font-size: 13px;
+  color: #039855;
+  margin-bottom: 16px;
+  text-align: center;
+  line-height: 1.5;
+  background-color: #ECFDF3;
+  padding: 10px;
+  border-radius: var(--radius-md);
 }
 
 .googleBtn {

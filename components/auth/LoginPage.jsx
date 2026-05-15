@@ -9,6 +9,7 @@ export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -26,10 +27,27 @@ export default function LoginPage() {
         await login(email, password);
       } else {
         if (!nickname.trim()) throw new Error('닉네임을 입력해주세요.');
-        await signup(email, password, nickname.trim());
+        const result = await signup(email, password, nickname.trim());
+        
+        // Supabase에서 이메일 인증이 설정된 경우 세션이 바로 생기지 않음
+        if (result && !result.session) {
+          setSuccess('회원가입이 완료되었습니다! 입력하신 이메일함에서 인증 메일을 확인해주세요.');
+          setNickname('');
+          setEmail('');
+          setPassword('');
+        }
       }
     } catch (err) {
-      setError(err.message || '인증 중 오류가 발생했습니다.');
+      const msg = err.message || '';
+      if (msg.includes('Invalid login credentials')) {
+        setError('이메일 또는 비밀번호가 올바르지 않습니다.');
+      } else if (msg.includes('User already registered')) {
+        setError('이미 가입된 이메일 주소입니다.');
+      } else if (msg.includes('Signup disabled')) {
+        setError('현재 회원가입이 비활성화되어 있습니다.');
+      } else {
+        setError(msg || '인증 중 오류가 발생했습니다.');
+      }
     } finally {
       setLoading(false);
     }
@@ -101,6 +119,7 @@ export default function LoginPage() {
             </div>
 
             {error && <p className={styles.error}>{error}</p>}
+            {success && <p className={styles.success}>{success}</p>}
 
             <button type="submit" className={styles.submitBtn} disabled={loading}>
               {loading ? '처리 중...' : (isLogin ? '이메일로 로그인' : '회원가입')}
