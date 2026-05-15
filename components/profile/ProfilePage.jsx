@@ -12,7 +12,7 @@ export default function ProfilePage() {
   const [activeSection, setActiveSection] = useState('profile'); // profile | settings
   const [editMode, setEditMode] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || '');
-  const [isPublic, setIsPublic] = useState(user?.isPublic ?? true);
+  const [isPublic, setIsPublic] = useState(user?.is_public ?? true);
   
   // Detailed privacy settings
   const [showRecords, setShowRecords] = useState(true);
@@ -215,16 +215,16 @@ export default function ProfilePage() {
               <div className={styles.settingsGroup}>
                 <p className={styles.groupLabel}>개인정보 및 공개 설정</p>
                 <div className={styles.settingItem}>
-                  {user?.isPublic ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
+                  {user?.is_public ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
                   <div className={styles.settingInfo}>
                     <p className={styles.settingTitle}>계정 전체 공개</p>
-                    <p className={styles.settingValue}>{user?.isPublic ? '공개 계정' : '비공개 계정'}</p>
+                    <p className={styles.settingValue}>{user?.is_public ? '공개 계정' : '비공개 계정'}</p>
                   </div>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={user?.isPublic}
-                      onChange={() => updateProfile({ isPublic: !user?.isPublic })}
+                      checked={user?.is_public ?? true}
+                      onChange={() => updateProfile({ isPublic: !user?.is_public })}
                     />
                     <span className={styles.slider}></span>
                   </label>
