@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { Map, MapMarker } from 'react-kakao-maps-sdk';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
@@ -26,6 +27,36 @@ const PIN_OPTIONS = [
 
 export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
+  const fileInputRef = useRef(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const [mapCenter, setMapCenter] = useState({ lat: 37.566826, lng: 126.978656 });
+
+  useEffect(() => {
+    if (isMapOpen && typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(() => {
+        setMapReady(true);
+      });
+    }
+  }, [isMapOpen]);
+
+  const handleMapClick = (_t, mouseEvent) => {
+    const lat = mouseEvent.latLng.getLat();
+    const lng = mouseEvent.latLng.getLng();
+    setMapCenter({ lat, lng });
+    
+    // Reverse geocoding
+    const geocoder = new window.kakao.maps.services.Geocoder();
+    geocoder.coord2Address(lng, lat, (result, status) => {
+      if (status === window.kakao.maps.services.Status.OK) {
+        const address = result[0].road_address ? result[0].road_address.address_name : result[0].address.address_name;
+        set('venue', address);
+      }
+    });
+    set('lat', lat);
+    set('lng', lng);
+    setIsMapOpen(false);
+  };
   const [form, setForm] = useState({
     photos: [],
     concertName: initialData?.name || '',
@@ -80,10 +111,18 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     onClose();
   };
 
-  // Mock photo upload
-  const handlePhotoUpload = () => {
-    const mockPhotos = [...form.photos, `https://picsum.photos/seed/${Date.now()}/400/300`];
-    set('photos', mockPhotos);
+  // Local photo preview
+  const handlePhotoUpload = (e) => {
+    const files = Array.from(e.target.files);
+    if (!files.length) return;
+    
+    if (form.photos.length + files.length > 10) {
+      alert('사진은 최대 10장까지 업로드할 수 있습니다.');
+      return;
+    }
+    const newPhotos = files.map(file => URL.createObjectURL(file));
+    set('photos', [...form.photos, ...newPhotos]);
+    // TODO: Supabase Storage 업로드 연동
   };
 
   return (
@@ -112,10 +151,18 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               
               {/* Photo Upload */}
               <div className={styles.photoUploadArea}>
-                <button className={styles.uploadBtn} onClick={handlePhotoUpload}>
+                <button className={styles.uploadBtn} onClick={() => fileInputRef.current?.click()}>
                   <Camera size={28} color="#98A2B3" />
                   <span className={styles.uploadText}>{form.photos.length}/10</span>
                 </button>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  multiple 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handlePhotoUpload} 
+                />
                 <div className={styles.photoScroll}>
                   {form.photos.map((photo, i) => (
                     <div key={i} className={styles.photoPreview}>
@@ -175,7 +222,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                       onChange={(e) => set('venue', e.target.value)}
                     />
                   </div>
-                  <button className={styles.mapPinBtn}>
+                  <button className={styles.mapPinBtn} onClick={() => setIsMapOpen(true)}>
                     <MapIcon size={20} color="#0054CB" />
                   </button>
                 </div>
@@ -327,6 +374,32 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
           )}
         </div>
       </div>
+
+      {isMapOpen && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={(e) => e.target === e.currentTarget && setIsMapOpen(false)}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '90%', maxWidth: '400px', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px', borderBottom: '1px solid #eee' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', color: '#101828' }}>지도에서 장소 선택</h3>
+              <button onClick={() => setIsMapOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={20} color="#101828" /></button>
+            </div>
+            <div style={{ padding: '16px' }}>
+              {!mapReady ? (
+                <div style={{ padding: '40px 20px', textAlign: 'center', color: '#667085' }}>지도 불러오는 중...</div>
+              ) : (
+                <Map
+                  center={mapCenter}
+                  style={{ width: '100%', height: '300px', borderRadius: '8px' }}
+                  level={3}
+                  onClick={handleMapClick}
+                >
+                  <MapMarker position={mapCenter} />
+                </Map>
+              )}
+              <p style={{ marginTop: '12px', fontSize: '13px', color: '#667085', textAlign: 'center', marginBottom: 0 }}>지도를 클릭하면 핀이 이동하고 주소가 자동 입력됩니다.</p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

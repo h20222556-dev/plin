@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { mockConcerts, mockPosts, mockRecords } from '@/lib/mockData';
 import styles from './SearchPage.module.css';
 
 const FILTERS = [
@@ -12,13 +11,6 @@ const FILTERS = [
   { id: 'users', label: '사용자' },
 ];
 
-const mockUsers = [
-  { uid: 'u1', nickname: '별빛수집가', profileEmoji: '⭐', concertCount: 45 },
-  { uid: 'u2', nickname: '콘서트홀릭', profileEmoji: '🎵', concertCount: 112 },
-  { uid: 'u3', nickname: '달빛여행자', profileEmoji: '🌙', concertCount: 23 },
-  { uid: 'u4', nickname: '스파클링', profileEmoji: '✨', concertCount: 67 },
-];
-
 export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -26,22 +18,12 @@ export default function SearchPage() {
 
   const hasQuery = query.trim().length > 0;
 
+  // Supabase 연동 전 빈 배열 유지
   const filtered = {
-    concerts: mockConcerts.filter(c =>
-      c.name.toLowerCase().includes(query.toLowerCase()) ||
-      c.artist.toLowerCase().includes(query.toLowerCase())
-    ),
-    posts: mockPosts.filter(p =>
-      p.content.toLowerCase().includes(query.toLowerCase()) ||
-      p.concert?.toLowerCase().includes(query.toLowerCase())
-    ),
-    records: mockRecords.filter(r =>
-      r.concertName.toLowerCase().includes(query.toLowerCase()) ||
-      r.artist.toLowerCase().includes(query.toLowerCase())
-    ),
-    users: mockUsers.filter(u =>
-      u.nickname.toLowerCase().includes(query.toLowerCase())
-    ),
+    concerts: [],
+    posts: [],
+    records: [],
+    users: [],
   };
 
   const totalResults = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
@@ -100,7 +82,7 @@ export default function SearchPage() {
 
             <h2 className={styles.discoverTitle} style={{ marginTop: 20 }}>추천 공연 🎤</h2>
             <div className={styles.recommendedList}>
-              {mockConcerts.slice(0, 3).map(c => (
+              {[].slice(0, 3).map(c => (
                 <div key={c.id} className={styles.recommendedCard}>
                   <span className={styles.recommendedEmoji}>{c.artistImage}</span>
                   <div className={styles.recommendedInfo}>
