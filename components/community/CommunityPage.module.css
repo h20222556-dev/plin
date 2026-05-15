@@ -1,0 +1,90 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-primary);
+  padding-bottom: var(--padding-bottom);
+}
+
+.header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 24px var(--margin-mobile) 0;
+  flex-shrink: 0;
+}
+
+.headerTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+}
+
+.writeBtn {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 700;
+  color: white;
+  transition: all var(--transition-base);
+}
+.writeBtn:active {
+  opacity: 0.9;
+  transform: scale(0.96);
+}
+
+.tabs {
+  display: flex;
+  gap: 24px;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.tabActive {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.unreadBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: var(--primary);
+  border-radius: var(--radius-full);
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  margin-left: 4px;
+}
+
+.feed {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px var(--margin-mobile);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}

@@ -1,0 +1,232 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-primary);
+  padding-bottom: var(--padding-bottom);
+}
+
+.header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  padding: 24px var(--margin-mobile) 12px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+.searchBar:focus-within {
+  border-color: var(--primary);
+  background: white;
+}
+
+.searchIcon { font-size: 16px; color: var(--text-muted); }
+
+.searchInput {
+  flex: 1;
+  background: none;
+  border: none;
+  font-size: 16px;
+  color: var(--text-primary);
+}
+.searchInput::placeholder { color: var(--text-placeholder); }
+
+.filters {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filters::-webkit-scrollbar { display: none; }
+
+.list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px var(--margin-mobile);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.concertCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-base);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 16px 0;
+}
+
+.badgeUpcoming {
+  font-size: 12px;
+  font-weight: 700;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.badgeSoldOut {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+}
+
+.bookmarkBtn {
+  font-size: 20px;
+}
+
+.cardMain {
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.artistArea {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.artistSymbol {
+  width: 56px;
+  height: 56px;
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+
+.artistInfo {
+  flex: 1;
+}
+
+.concertName {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.artistName {
+  font-size: 14px;
+  color: var(--primary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.detailItem span:first-child {
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.cardBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.genres {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.genreChip {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  background: var(--bg-surface);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.reviewCount {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.cardActions {
+  display: flex;
+  gap: 10px;
+  padding: 0 16px 16px;
+}
+
+.ticketBtn {
+  flex: 1;
+  padding: 12px;
+  background: var(--primary);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 700;
+  color: white;
+  text-align: center;
+  transition: all var(--transition-base);
+}
+.ticketBtn:active { transform: scale(0.97); }
+
+.reviewBtn {
+  flex: 1;
+  padding: 12px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-base);
+}
+.reviewBtn:active { background: var(--bg-surface); }

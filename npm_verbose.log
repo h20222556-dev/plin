@@ -1,0 +1,8 @@
+npm verbose cli /usr/local/bin/node /usr/local/bin/npm
+npm info using npm@11.11.0
+npm info using node@v24.14.1
+npm verbose title npm install
+npm verbose argv "install" "--legacy-peer-deps" "--loglevel" "verbose"
+npm verbose logfile logs-max:10 dir:/Users/kakajae/.npm/_logs/2026-05-14T03_54_47_556Z-
+npm verbose logfile /Users/kakajae/.npm/_logs/2026-05-14T03_54_47_556Z-debug-0.log
+npm verbose shrinkwrap failed to load node_modules/.package-lock.json out of date, updated: node_modules

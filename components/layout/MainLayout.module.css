@@ -1,0 +1,105 @@
+.layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;        /* fills .app-shell which is 100dvh */
+  background-color: var(--bg-primary);
+  overflow: hidden;
+}
+
+.topHeader {
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--margin-mobile);
+  border-bottom: 1px solid var(--border);
+  background-color: var(--bg-primary);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logoBtn {
+  padding: 8px 0;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--primary);
+  letter-spacing: -1px;
+}
+
+.main {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  padding-bottom: 32px; /* Protect content from FAB overlap */
+}
+
+.tabBar {
+  height: 84px;
+  background-color: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: 24px; /* HIG bottom padding for gesture bar */
+  position: relative;
+  z-index: 20;
+}
+
+.tabItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--text-muted);
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.tabItemActive {
+  color: var(--primary) !important;
+}
+
+.tabLabel {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.tabIndicator {
+  position: absolute;
+  top: 0;
+  width: 20px;
+  height: 3px;
+  background-color: var(--primary);
+  border-radius: 0 0 2px 2px;
+}
+
+/* FAB Styling */
+.fabContainer {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.fabButton {
+  position: absolute;
+  top: -24px; /* Elevate above the tab bar */
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gradient-brand, linear-gradient(135deg, #0054CB, #337BE2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 84, 203, 0.4);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 4px solid var(--bg-primary); /* creates a cutout effect */
+}
+
+.fabButton:active {
+  transform: scale(0.92);
+}

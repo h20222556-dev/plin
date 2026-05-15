@@ -1,0 +1,540 @@
+.overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: var(--bg-primary); /* Full screen on mobile */
+  z-index: 500;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@media (min-width: 480px) {
+  .overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 24px;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.modal {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-primary);
+  width: 100%;
+}
+
+@media (min-width: 480px) {
+  .modal {
+    flex: none;
+    height: 80vh;
+    max-width: 430px;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-xl);
+    overflow: hidden;
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--margin-mobile);
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+  z-index: 10;
+}
+
+.iconBtn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  color: var(--text-primary);
+}
+
+.saveTextBtn {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+  padding: 8px 0;
+}
+
+.stepIndicator {
+  display: flex;
+  gap: 8px;
+}
+
+.stepDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--border);
+  transition: all var(--transition-base);
+}
+
+.stepDotActive {
+  background-color: var(--primary);
+  transform: scale(1.2);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  position: relative;
+  background-color: var(--bg-primary);
+}
+
+.stepContainer {
+  padding: 24px var(--margin-mobile);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  animation: fadeIn 0.3s ease;
+  min-height: 100%;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.stepTitle {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+
+/* Form Elements */
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.input {
+  width: 100%;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 16px;
+  color: var(--text-primary);
+  transition: all var(--transition-base);
+}
+
+.input:focus {
+  background-color: white;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(0, 84, 203, 0.1);
+}
+
+.textarea {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  color: var(--text-primary);
+  resize: none;
+  line-height: 1.6;
+}
+
+.textarea:focus {
+  background-color: white;
+  border-color: var(--primary);
+}
+
+.inputGhost {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 15px;
+  color: var(--text-primary);
+  padding: 0;
+}
+
+/* Photo Upload */
+.photoUploadArea {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  margin: 0 calc(var(--margin-mobile) * -1);
+  padding-left: var(--margin-mobile);
+  padding-right: var(--margin-mobile);
+}
+
+.photoUploadArea::-webkit-scrollbar {
+  display: none;
+}
+
+.uploadBtn {
+  flex: 0 0 80px;
+  height: 80px;
+  background-color: var(--bg-surface);
+  border: 1px dashed var(--border-active);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.uploadText {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.photoScroll {
+  display: flex;
+  gap: 12px;
+}
+
+.photoPreview {
+  flex: 0 0 80px;
+  height: 80px;
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.photoPreview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.removePhotoBtn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  background-color: rgba(0,0,0,0.5);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Date Picker */
+.datePickerContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.dateInput {
+  flex: 1;
+  border: none;
+  background: none;
+  font-size: 16px;
+  font-family: inherit;
+  color: var(--text-primary);
+  outline: none;
+}
+
+/* Location */
+.locationInputArea {
+  display: flex;
+  gap: 8px;
+}
+
+.locationInput {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.mapPinBtn {
+  width: 52px;
+  height: 52px;
+  background-color: rgba(0, 84, 203, 0.05);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.mapPinBtn:active {
+  background-color: rgba(0, 84, 203, 0.1);
+}
+
+/* Weather & Pin Grids */
+.weatherGrid, .pinGrid {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.weatherGrid::-webkit-scrollbar, .pinGrid::-webkit-scrollbar {
+  display: none;
+}
+
+.weatherBtn {
+  flex: 0 0 64px;
+  height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-base);
+}
+
+.weatherBtn span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.weatherBtnActive {
+  background-color: rgba(0, 84, 203, 0.05);
+  border-color: var(--primary);
+}
+
+.weatherBtnActive span {
+  color: var(--primary);
+}
+
+.pinBtn {
+  flex: 0 0 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  transition: all var(--transition-base);
+}
+
+.pinBtnActive {
+  background-color: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 4px 12px rgba(0, 84, 203, 0.3);
+}
+
+/* Tags */
+.tagInputArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.tagChip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: rgba(0, 84, 203, 0.05);
+  border: 1px solid rgba(0, 84, 203, 0.1);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.removeTagBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--primary);
+  opacity: 0.7;
+}
+
+/* Setlist */
+.setlistForm {
+  display: flex;
+  gap: 8px;
+}
+
+.addSongBtn {
+  width: 52px;
+  height: 52px;
+  background-color: rgba(0, 84, 203, 0.05);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.setlistArea {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.setlistItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.setlistNum {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--primary);
+  width: 20px;
+}
+
+.setlistInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setlistTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.setlistArtist {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.removeSongBtn {
+  padding: 8px;
+  border-radius: 50%;
+  background-color: rgba(240, 68, 56, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Toggle Switch */
+.toggleArea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.toggleInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.toggleTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.toggleDesc {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.4;
+  padding-left: 26px;
+}
+
+/* CSS Switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 50px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.switch input { 
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #D0D5DD;
+  transition: .3s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 22px;
+  width: 22px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+input:checked + .slider {
+  background-color: var(--primary);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
