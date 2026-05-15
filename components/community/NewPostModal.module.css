@@ -64,3 +64,64 @@
 }
 
 .charCount { font-size: 12px; color: var(--text-muted); }
+
+/* Performance List Styles */
+.perfList {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none; /* Firefox */
+}
+.perfList::-webkit-scrollbar { display: none; } /* Chrome/Safari */
+
+.perfItem {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: all var(--transition-fast);
+  max-width: 200px;
+}
+
+.perfItem:hover {
+  background: var(--bg-surface);
+}
+
+.perfActive {
+  background: var(--gradient-brand-soft);
+  border-color: var(--border-active);
+  color: var(--brand-primary);
+}
+
+.perfInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  overflow: hidden;
+}
+
+.perfName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+
+.perfDate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.emptyNote {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-style: italic;
+}
