@@ -67,7 +67,12 @@ export default function RecordsPage({ onNavigate }) {
 
       {/* Footer Banner */}
       <div className={styles.footerBanner}>
-        <p>이번 달 기록 <strong>{records.length}개</strong></p>
+        <p>이번 달 기록 <strong>{
+          records.filter(r => {
+            const d = new Date(r.date);
+            return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
+          }).length
+        }개</strong></p>
       </div>
 
       {/* Bottom Sheet for Details */}
