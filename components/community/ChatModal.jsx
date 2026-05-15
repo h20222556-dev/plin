@@ -6,9 +6,18 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import styles from './ChatModal.module.css';
 import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react';
 
+/**
+ * chat prop 구조:
+ * {
+ *   roomId: string,        // chat_rooms.id
+ *   recipientId: string,   // 상대방 user id
+ *   recipientNickname: string,
+ *   expiresAt: string,     // ISO 날짜 문자열 (옵션)
+ * }
+ */
 export default function ChatModal({ chat, onClose }) {
   const { user } = useAuth();
-  const { messages, loading, sendMessage } = useChat(chat.id, chat.user?.id || 'unknown');
+  const { messages, loading, expiresAt, sendMessage } = useChat(chat.roomId, chat.recipientId);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
@@ -23,16 +32,16 @@ export default function ChatModal({ chat, onClose }) {
   };
 
   const getTimeLeft = () => {
-    if (!chat.expiresAt) return '3일 후 삭제';
-    const diff = new Date(chat.expiresAt).getTime() - Date.now();
+    const target = expiresAt || chat.expiresAt;
+    if (!target) return '3일 후 삭제';
+    const diff = new Date(target).getTime() - Date.now();
     if (diff <= 0) return '만료됨';
     const hr = Math.floor(diff / 3600000);
     if (hr < 24) return `${hr}시간 후 삭제`;
     return `${Math.floor(hr / 24)}일 후 삭제`;
   };
 
-  // Safe user access to handle cases where chat was initiated without full user object
-  const nickname = chat.user?.nickname || chat.participants?.[0] || '알 수 없는 사용자';
+  const nickname = chat.recipientNickname || '알 수 없는 사용자';
 
   return (
     <div className={styles.overlay}>
@@ -42,7 +51,7 @@ export default function ChatModal({ chat, onClose }) {
           <button className={styles.backBtn} onClick={onClose}>
             <ChevronLeft size={24} color="#101828" />
           </button>
-          
+
           <div className={styles.headerCenter}>
             <div className={styles.avatar}>
               <User size={18} color="#0054CB" />
@@ -55,7 +64,7 @@ export default function ChatModal({ chat, onClose }) {
               </div>
             </div>
           </div>
-          
+
           <button className={styles.menuBtn}>
             <MoreVertical size={20} color="#667085" />
           </button>
@@ -67,8 +76,12 @@ export default function ChatModal({ chat, onClose }) {
             <Info size={14} color="#0054CB" style={{ flexShrink: 0 }} />
             <span>이 대화는 마지막 메시지로부터 3일 후 자동 삭제됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
           </div>
-          
-          {messages.length === 0 && (
+
+          {loading && (
+            <div style={{ textAlign: 'center', padding: '20px', color: '#667085' }}>불러오는 중...</div>
+          )}
+
+          {!loading && messages.length === 0 && (
             <div className={styles.emptyState}>
               <span className={styles.emptyIcon}>👋</span>
               <p>첫 메시지를 보내 인사를 나눠보세요!</p>
@@ -112,8 +125,8 @@ export default function ChatModal({ chat, onClose }) {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && send()}
             />
-            <button 
-              className={styles.sendBtn} 
+            <button
+              className={styles.sendBtn}
               onClick={send}
               disabled={!input.trim()}
             >

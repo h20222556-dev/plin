@@ -1,34 +1,32 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Map, CustomOverlayMap } from 'react-kakao-maps-sdk';
+import { GoogleMap, OverlayView, useJsApiLoader } from '@react-google-maps/api';
 import styles from './RecordMap.module.css';
 
 export default function RecordMap({ records, onSelectRecord }) {
-  const [mapReady, setMapReady] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 37.5665, lng: 126.9780 });
-  const [mapLevel, setMapLevel] = useState(8); // 카카오 지도 레벨 (리플렛과 반비례, 낮을수록 확대)
 
-  useEffect(() => {
-    // SDK가 로드되었는지 확인 후 초기화
-    if (typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(() => {
-        setMapReady(true);
-      });
-    }
-  }, []);
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY,
+    language: 'ko',
+    region: 'KR'
+  });
+
+  const mapContainerStyle = { width: '100%', height: '100%' };
 
   useEffect(() => {
     // 레코드가 있으면 첫 번째 레코드 위치로 중심 이동 (또는 Bounds 계산 가능)
-    if (mapReady && records.length > 0) {
+    if (isLoaded && records.length > 0) {
       const validRecords = records.filter(r => r.lat && r.lng);
       if (validRecords.length > 0) {
         setMapCenter({ lat: validRecords[0].lat, lng: validRecords[0].lng });
       }
     }
-  }, [records, mapReady]);
+  }, [records, isLoaded]);
 
-  if (!mapReady) {
+  if (!isLoaded) {
     return (
       <div className={styles.mapWrapper}>
         <div className={styles.map} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -40,20 +38,22 @@ export default function RecordMap({ records, onSelectRecord }) {
 
   return (
     <div className={styles.mapWrapper}>
-      <Map
+      <GoogleMap
+        mapContainerClassName={styles.map}
+        mapContainerStyle={mapContainerStyle}
         center={mapCenter}
-        level={mapLevel}
-        className={styles.map}
-        style={{ width: '100%', height: '100%' }}
+        zoom={12}
+        options={{ disableDefaultUI: true, zoomControl: true }}
       >
         {records.map((record) => {
           if (!record.lat || !record.lng) return null;
           
           return (
-            <CustomOverlayMap
+            <OverlayView
               key={record.id}
               position={{ lat: record.lat, lng: record.lng }}
-              yAnchor={1} // 마커 끝부분을 기준점으로
+              mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+              getPixelPositionOffset={(width, height) => ({ x: -(width / 2), y: -height })}
             >
               <div 
                 className="plin-marker-container"
@@ -70,10 +70,10 @@ export default function RecordMap({ records, onSelectRecord }) {
                   <span>{record.date}</span>
                 </div>
               </div>
-            </CustomOverlayMap>
+            </OverlayView>
           );
         })}
-      </Map>
+      </GoogleMap>
       <style>{`
         .plin-marker-container {
           position: relative;

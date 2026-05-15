@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { mockChats } from '@/lib/mockData';
 import { useCommunity } from '@/lib/hooks/useCommunity';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { getOrCreateChatRoom } from '@/lib/hooks/useChat';
 import styles from './CommunityPage.module.css';
 import PostCard from './PostCard';
 import ChatList from './ChatList';
@@ -17,11 +18,45 @@ const TABS = [
 
 export default function CommunityPage() {
   const [activeTab, setActiveTab] = useState('feed');
-  const { posts, loading, createPost, toggleLike } = useCommunity();
-  const [chats] = useState(mockChats);
+  const { posts, loading, createPost, toggleLike, deletePost } = useCommunity();
+
+  const handleDeletePost = async (postId) => {
+    if (!deletePost) return;
+    await deletePost(postId);
+  };
+  const { user } = useAuth();
   const [showNewPost, setShowNewPost] = useState(false);
-  const [activeChat, setActiveChat] = useState(null);
+  const [activeChat, setActiveChat] = useState(null); // { roomId, recipientId, recipientNickname, expiresAt }
   const [selectedUser, setSelectedUser] = useState(null);
+  const [startingChat, setStartingChat] = useState(false);
+
+  const handleStartChat = async (targetUser) => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+    if (user.id === targetUser.id) {
+      alert('자기 자신과 채팅할 수 없습니다.');
+      return;
+    }
+    setStartingChat(true);
+    try {
+      const room = await getOrCreateChatRoom(user.id, targetUser.id);
+      setSelectedUser(null);
+      setActiveChat({
+        roomId: room.id,
+        recipientId: targetUser.id,
+        recipientNickname: targetUser.nickname,
+        expiresAt: room.expires_at,
+      });
+      setActiveTab('chats');
+    } catch (err) {
+      console.error('채팅방 생성 실패:', err.message);
+      alert('채팅을 시작하지 못했습니다.');
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   return (
     <div className={styles.page}>
@@ -45,11 +80,6 @@ export default function CommunityPage() {
               onClick={() => setActiveTab(t.id)}
             >
               {t.label}
-              {t.id === 'chats' && chats.some(c => c.unread > 0) && (
-                <span className={styles.unreadBadge}>
-                  {chats.reduce((sum, c) => sum + c.unread, 0)}
-                </span>
-              )}
             </button>
           ))}
         </div>
@@ -61,16 +91,18 @@ export default function CommunityPage() {
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>불러오는 중...</div>
           ) : posts.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>아직 작성된 글이 없습니다.</div>
+            <div style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
+              아직 작성된 글이 없습니다.<br />첫 번째 글을 남겨보세요! 🎵
+            </div>
           ) : (
             <div className="stagger">
               {posts.map(post => (
-                <PostCard 
-                  key={post.id} 
-                  post={post} 
-                  onLike={() => toggleLike(post.id, post.likes, post.isLiked)} 
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  onLike={() => toggleLike(post.id, post.likes, post.isLiked)}
                   onAuthorClick={(author) => setSelectedUser(author)}
-                  onDelete={deletePost}
+                  onDelete={handleDeletePost}
                 />
               ))}
             </div>
@@ -78,9 +110,9 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* Chats */}
-      {activeTab === 'chats' && (
-        <ChatList chats={chats} onOpenChat={setActiveChat} />
+      {/* Chats — 채팅 목록 (현재 채팅방이 열려 있지 않을 때) */}
+      {activeTab === 'chats' && !activeChat && (
+        <ChatList onOpenChat={setActiveChat} />
       )}
 
       {/* New Post Modal */}
@@ -88,7 +120,7 @@ export default function CommunityPage() {
         <NewPostModal
           onClose={() => setShowNewPost(false)}
           onPost={async (post) => {
-            await createPost(post.content, post.tags, null);
+            await createPost(post.content, post.tags, post.emotion, null);
             setShowNewPost(false);
           }}
         />
@@ -101,21 +133,11 @@ export default function CommunityPage() {
 
       {/* User Profile Modal */}
       {selectedUser && (
-        <UserProfileModal 
-          user={selectedUser} 
-          onClose={() => setSelectedUser(null)} 
-          onStartChat={() => {
-            // Logic to start chat with user
-            setSelectedUser(null);
-            setActiveTab('chats');
-            // Assuming mock chat is created or opened
-            setActiveChat({
-              id: `chat_new_${Date.now()}`,
-              participants: [selectedUser.nickname],
-              lastMessage: '채팅을 시작합니다.',
-              unread: 0,
-            });
-          }}
+        <UserProfileModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onStartChat={() => handleStartChat(selectedUser)}
+          isStartingChat={startingChat}
         />
       )}
     </div>

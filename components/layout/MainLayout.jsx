@@ -6,7 +6,8 @@ import RecordsPage from '@/components/records/RecordsPage';
 import ConcertsPage from '@/components/concerts/ConcertsPage';
 import CommunityPage from '@/components/community/CommunityPage';
 import ProfilePage from '@/components/profile/ProfilePage';
-import AddRecordModal from '@/components/records/AddRecordModal';
+import dynamic from 'next/dynamic';
+const AddRecordModal = dynamic(() => import('@/components/records/AddRecordModal'), { ssr: false });
 import { Map, Music, Plus, MessageCircle, User, Search } from 'lucide-react';
 
 const TABS = [

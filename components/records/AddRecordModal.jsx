@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
-import { Map, MapMarker } from 'react-kakao-maps-sdk';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
@@ -29,28 +29,27 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapReady, setMapReady] = useState(false);
   const [mapCenter, setMapCenter] = useState({ lat: 37.566826, lng: 126.978656 });
 
-  useEffect(() => {
-    if (isMapOpen && typeof window !== 'undefined' && window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(() => {
-        setMapReady(true);
-      });
-    }
-  }, [isMapOpen]);
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY,
+    language: 'ko',
+    region: 'KR'
+  });
 
-  const handleMapClick = (_t, mouseEvent) => {
-    const lat = mouseEvent.latLng.getLat();
-    const lng = mouseEvent.latLng.getLng();
+  const mapContainerStyle = { width: '100%', height: '300px', borderRadius: '8px' };
+
+  const handleMapClick = (e) => {
+    const lat = e.latLng.lat();
+    const lng = e.latLng.lng();
     setMapCenter({ lat, lng });
     
     // Reverse geocoding
-    const geocoder = new window.kakao.maps.services.Geocoder();
-    geocoder.coord2Address(lng, lat, (result, status) => {
-      if (status === window.kakao.maps.services.Status.OK) {
-        const address = result[0].road_address ? result[0].road_address.address_name : result[0].address.address_name;
-        set('venue', address);
+    const geocoder = new window.google.maps.Geocoder();
+    geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+      if (status === 'OK' && results[0]) {
+        set('venue', results[0].formatted_address);
       }
     });
     set('lat', lat);
@@ -383,17 +382,18 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
               <button onClick={() => setIsMapOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}><X size={20} color="#101828" /></button>
             </div>
             <div style={{ padding: '16px' }}>
-              {!mapReady ? (
+              {!isLoaded ? (
                 <div style={{ padding: '40px 20px', textAlign: 'center', color: '#667085' }}>지도 불러오는 중...</div>
               ) : (
-                <Map
+                <GoogleMap
+                  mapContainerStyle={mapContainerStyle}
                   center={mapCenter}
-                  style={{ width: '100%', height: '300px', borderRadius: '8px' }}
-                  level={3}
+                  zoom={15}
                   onClick={handleMapClick}
+                  options={{ disableDefaultUI: true, zoomControl: true }}
                 >
-                  <MapMarker position={mapCenter} />
-                </Map>
+                  <Marker position={mapCenter} />
+                </GoogleMap>
               )}
               <p style={{ marginTop: '12px', fontSize: '13px', color: '#667085', textAlign: 'center', marginBottom: 0 }}>지도를 클릭하면 핀이 이동하고 주소가 자동 입력됩니다.</p>
             </div>

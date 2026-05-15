@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ConcertsPage.module.css';
 import ConcertDetailModal from './ConcertDetailModal';
-import AddRecordModal from '../records/AddRecordModal';
+import dynamic from 'next/dynamic';
+const AddRecordModal = dynamic(() => import('../records/AddRecordModal'), { ssr: false });
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
 
 export default function ConcertsPage({ onNavigate }) {

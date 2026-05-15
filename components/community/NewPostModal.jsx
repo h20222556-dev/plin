@@ -8,22 +8,21 @@ export default function NewPostModal({ onClose, onPost }) {
   const [content, setContent] = useState('');
   const [concert, setConcert] = useState('');
   const [emotion, setEmotion] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!content.trim()) return;
-    onPost({
-      author: {
-        uid: 'user_001',
-        nickname: '밤하늘',
-        profileEmoji: '🌙',
-        isPublic: true,
-      },
-      content,
-      concert,
-      emotion,
-      createdAt: new Date().toISOString(),
-      tags: [],
-    });
+    setIsPosting(true);
+    try {
+      await onPost({
+        content: content.trim(),
+        concert,
+        emotion,
+        tags: concert ? [concert] : [],
+      });
+    } finally {
+      setIsPosting(false);
+    }
   };
 
   return (
@@ -43,12 +42,17 @@ export default function NewPostModal({ onClose, onPost }) {
             onChange={e => setContent(e.target.value)}
             rows={5}
             autoFocus
+            maxLength={500}
           />
 
           <div className={styles.fieldGroup}>
             <label className={styles.label}>공연명 (선택)</label>
-            <input className="input-field" placeholder="어떤 공연에 대한 이야기인가요?" value={concert}
-              onChange={e => setConcert(e.target.value)} />
+            <input
+              className="input-field"
+              placeholder="어떤 공연에 대한 이야기인가요?"
+              value={concert}
+              onChange={e => setConcert(e.target.value)}
+            />
           </div>
 
           <div className={styles.fieldGroup}>
@@ -72,9 +76,9 @@ export default function NewPostModal({ onClose, onPost }) {
           <button
             className="btn-primary"
             onClick={handlePost}
-            disabled={!content.trim()}
+            disabled={!content.trim() || isPosting}
           >
-            게시하기
+            {isPosting ? '게시 중...' : '게시하기'}
           </button>
         </div>
       </div>
