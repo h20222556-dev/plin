@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ProfilePage.module.css';
@@ -18,6 +19,22 @@ export default function ProfilePage() {
   const [showRecords, setShowRecords] = useState(true);
   const [showPosts, setShowPosts] = useState(true);
   const [showFollowers, setShowFollowers] = useState(true);
+  const [followerCount, setFollowerCount] = useState(0);
+
+  useEffect(() => {
+    if (!user) return;
+    
+    const fetchFollowerCount = async () => {
+      const { count, error } = await supabase
+        .from('follows')
+        .select('*', { count: 'exact', head: true })
+        .eq('following_id', user.id);
+      
+      if (!error) setFollowerCount(count || 0);
+    };
+
+    fetchFollowerCount();
+  }, [user?.id]);
 
   const publicRecords = records.filter(r => r.isPublic);
 
@@ -93,7 +110,7 @@ export default function ProfilePage() {
                 </div>
                 <div className={styles.statDivider} />
                 <div className={styles.stat}>
-                  <span className={styles.statNum}>{user?.friendCount || 0}</span>
+                  <span className={styles.statNum}>{followerCount}</span>
                   <span className={styles.statLabel}>팔로워</span>
                 </div>
               </div>
