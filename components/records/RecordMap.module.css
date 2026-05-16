@@ -15,8 +15,8 @@
 .mapOverlayTop {
   position: absolute;
   top: 16px;
-  left: 16px;
-  z-index: 1000;
+  right: 16px; /* Moved to right */
+  z-index: 400; /* Lower than modal/bottomsheet */
   pointer-events: none;
 }
 
@@ -38,7 +38,7 @@
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 1000;
+  z-index: 400; /* Lower than modal/bottomsheet */
   pointer-events: none;
 }
 
