@@ -8,7 +8,7 @@ import styles from './ChatList.module.css';
 import { Sparkles, Clock, User } from 'lucide-react';
 
 export default function ChatList({ onOpenChat }) {
-  const { user } = useAuth();
+  const { user, isDemoMode, DEMO_USER_ID, DEMO_USER_IDS } = useAuth();
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,18 +18,17 @@ export default function ChatList({ onOpenChat }) {
     const fetchChats = async () => {
       setLoading(true);
       try {
-        // 내가 참여한 채팅방 조회 (만료 포함)
-        const { data, error } = await supabase
-          .from('chat_rooms')
-          .select(`
-            id,
-            expires_at,
-            created_at,
-            user_a_id,
-            user_b_id
-          `)
-          .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-          .order('expires_at', { ascending: false });
+        let query = supabase.from('chat_rooms').select('id, expires_at, created_at, user_a_id, user_b_id');
+        
+        if (isDemoMode) {
+          // 데모 모드: 데모 유저 그룹 내의 모든 채팅방
+          query = query.or(`user_a_id.in.(${DEMO_USER_IDS.join(',')}),user_b_id.in.(${DEMO_USER_IDS.join(',')})`);
+        } else {
+          // 일반 모드: 내 채팅방만 조회 (데모 유저 제외)
+          query = query.and(`or(user_a_id.eq.${user.id},user_b_id.eq.${user.id}),not.user_a_id.in.(${DEMO_USER_IDS.join(',')}),not.user_b_id.in.(${DEMO_USER_IDS.join(',')})`);
+        }
+
+        const { data, error } = await query.order('expires_at', { ascending: false });
 
         if (error) throw error;
 

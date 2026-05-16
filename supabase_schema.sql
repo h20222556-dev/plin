@@ -254,6 +254,41 @@ CREATE POLICY "chats_insert" ON public.chats FOR INSERT
     )
   );
 
--- ============================================================
--- 완료! 이제 앱에서 데이터를 저장할 수 있습니다.
--- ============================================================
+-- ──────────────────────────────────────
+-- 7. COMMENTS 테이블 (게시글 댓글)
+-- ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.comments (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id    UUID        NOT NULL REFERENCES public.posts(id) ON DELETE CASCADE,
+  user_id    UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  content    TEXT        NOT NULL CHECK (char_length(content) <= 300),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS comments_post_id_idx ON public.comments(post_id);
+
+-- ── COMMENTS RLS ──
+ALTER TABLE public.comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "comments_select" ON public.comments FOR SELECT USING (TRUE);
+CREATE POLICY "comments_insert" ON public.comments FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "comments_delete" ON public.comments FOR DELETE USING (auth.uid() = user_id);
+
+-- ──────────────────────────────────────
+-- 8. FOLLOWS 테이블 (친구/팔로우)
+-- ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.follows (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  follower_id  UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  following_id UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (follower_id, following_id)
+);
+
+CREATE INDEX IF NOT EXISTS follows_follower_id_idx ON public.follows(follower_id);
+CREATE INDEX IF NOT EXISTS follows_following_id_idx ON public.follows(following_id);
+
+-- ── FOLLOWS RLS ──
+ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "follows_select" ON public.follows FOR SELECT USING (TRUE);
+CREATE POLICY "follows_insert" ON public.follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
+CREATE POLICY "follows_delete" ON public.follows FOR DELETE USING (auth.uid() = follower_id);
