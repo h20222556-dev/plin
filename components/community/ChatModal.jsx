@@ -123,7 +123,7 @@ export default function ChatModal({ chat, onClose }) {
               placeholder="메시지를 입력하세요..."
               value={input}
               onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && send()}
+              onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && send()}
             />
             <button
               className={styles.sendBtn}

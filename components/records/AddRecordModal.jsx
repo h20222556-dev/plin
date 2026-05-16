@@ -72,7 +72,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   };
 
   const addTag = (e) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
+    if (e.key === 'Enter' && tagInput.trim() && !e.nativeEvent.isComposing) {
       e.preventDefault();
       if (!form.tags.includes(tagInput.trim())) {
         set('tags', [...form.tags, tagInput.trim()]);
@@ -330,7 +330,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     placeholder="가수명 (선택)" 
                     value={newSongArtist}
                     onChange={(e) => setNewSongArtist(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && addSong()}
+                    onKeyDown={(e) => e.key === 'Enter' && !e.nativeEvent.isComposing && addSong()}
                   />
                   <button type="button" className={styles.addSongBtn} onClick={addSong}>
                     <Plus size={24} color="#0054CB" />
