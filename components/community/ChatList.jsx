@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { MOCK_CHATS } from '@/lib/mockData';
 import styles from './ChatList.module.css';
 import { Sparkles, Clock, User } from 'lucide-react';
 
@@ -12,18 +11,10 @@ export default function ChatList({ onOpenChat }) {
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (isDemoMode) {
-      // 데모 모드: Mock 데이터 가공하여 표시
-      const enriched = MOCK_CHATS.map(room => ({
-        ...room,
-        isExpired: new Date(room.expiresAt) < new Date(),
-      }));
-      setChats(enriched);
-      setLoading(false);
-      return;
-    }
+  // 데모 여부에 따른 테이블명 결정
+  const CHATS_TABLE = isDemoMode ? 'demo_chats' : 'chats';
 
+  useEffect(() => {
     if (!user) return;
 
     const fetchChats = async () => {
@@ -49,9 +40,9 @@ export default function ChatList({ onOpenChat }) {
               .eq('id', recipientId)
               .single();
 
-            // 마지막 메시지
+            // 마지막 메시지 (분리된 테이블에서 조회)
             const { data: lastMsgData } = await supabase
-              .from('chats')
+              .from(CHATS_TABLE)
               .select('message, created_at, sender_id, is_read')
               .eq('room_id', room.id)
               .order('created_at', { ascending: false })
@@ -59,9 +50,9 @@ export default function ChatList({ onOpenChat }) {
 
             const lastMsg = lastMsgData?.[0] || null;
 
-            // 읽지 않은 메시지 수 (내가 받은 것 중 is_read=false)
+            // 읽지 않은 메시지 수 (분리된 테이블에서 조회)
             const { count: unread } = await supabase
-              .from('chats')
+              .from(CHATS_TABLE)
               .select('id', { count: 'exact', head: true })
               .eq('room_id', room.id)
               .eq('receiver_id', user.id)
@@ -85,7 +76,7 @@ export default function ChatList({ onOpenChat }) {
 
         setChats(enriched);
       } catch (err) {
-        console.error('Error fetching chats:', err.message);
+        console.error(`Error fetching chats from ${CHATS_TABLE}:`, err.message);
       } finally {
         setLoading(false);
       }
@@ -97,11 +88,11 @@ export default function ChatList({ onOpenChat }) {
     const channel = supabase
       .channel('chat_rooms_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms' }, fetchChats)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, fetchChats)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHATS_TABLE }, fetchChats)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user?.id]);
+  }, [user?.id, isDemoMode, CHATS_TABLE]);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
