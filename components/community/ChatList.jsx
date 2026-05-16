@@ -3,15 +3,27 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { MOCK_CHATS } from '@/lib/mockData';
 import styles from './ChatList.module.css';
 import { Sparkles, Clock, User } from 'lucide-react';
 
 export default function ChatList({ onOpenChat }) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (isDemoMode) {
+      // 데모 모드: Mock 데이터 가공하여 표시
+      const enriched = MOCK_CHATS.map(room => ({
+        ...room,
+        isExpired: new Date(room.expiresAt) < new Date(),
+      }));
+      setChats(enriched);
+      setLoading(false);
+      return;
+    }
+
     if (!user) return;
 
     const fetchChats = async () => {

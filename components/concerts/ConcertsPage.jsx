@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useRecords } from '@/lib/hooks/useRecords';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { MOCK_PERFORMANCES } from '@/lib/mockData';
 import styles from './ConcertsPage.module.css';
 import ConcertDetailModal from './ConcertDetailModal';
 import dynamic from 'next/dynamic';
@@ -9,8 +11,9 @@ const AddRecordModal = dynamic(() => import('../records/AddRecordModal'), { ssr:
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
 
 export default function ConcertsPage({ onNavigate }) {
-  // 모크 데이터 대신 빈 배열 사용 (향후 Supabase에서 불러오기)
-  const [concerts, setConcerts] = useState([]);
+  const { isDemoMode } = useAuth();
+  // 데모 모드일 경우 Mock 데이터 사용
+  const [concerts, setConcerts] = useState(isDemoMode ? MOCK_PERFORMANCES : []);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
