@@ -74,7 +74,34 @@ export default function ChatList({ onOpenChat }) {
           })
         );
 
-        setChats(enriched);
+        if (isDemoMode) {
+          const { MOCK_CHATS } = require('@/lib/mockData');
+          const mockEnriched = MOCK_CHATS.map(mc => {
+            const isExpired = new Date(mc.expiresAt) < new Date();
+            return {
+              roomId: mc.roomId,
+              recipientId: mc.recipientId,
+              recipientNickname: mc.recipientNickname,
+              recipientEmoji: mc.recipientEmoji,
+              lastMessage: mc.lastMessage,
+              lastMessageAt: mc.lastMessageAt,
+              expiresAt: mc.expiresAt,
+              unread: mc.unread,
+              isExpired,
+            };
+          });
+
+          // Prepend mock chats, keeping roomIds unique
+          const combined = [...mockEnriched];
+          enriched.forEach(c => {
+            if (!combined.some(x => x.roomId === c.roomId)) {
+              combined.push(c);
+            }
+          });
+          setChats(combined);
+        } else {
+          setChats(enriched);
+        }
       } catch (err) {
         console.error(`Error fetching chats from ${CHATS_TABLE}:`, err.message);
       } finally {
@@ -171,7 +198,11 @@ export default function ChatList({ onOpenChat }) {
               disabled={chat.isExpired}
             >
               <div className={styles.chatAvatar}>
-                <User size={24} color="#0054CB" />
+                {chat.recipientEmoji ? (
+                  <span style={{ fontSize: 24 }}>{chat.recipientEmoji}</span>
+                ) : (
+                  <User size={24} color="#0054CB" />
+                )}
                 {chat.unread > 0 && (
                   <span className={styles.unreadDot}>{chat.unread}</span>
                 )}
