@@ -19,6 +19,7 @@ export default function ConcertsPage({ onNavigate }) {
   const [search, setSearch] = useState('');
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [recordContext, setRecordContext] = useState(null);
+  const [openTicketLinks, setOpenTicketLinks] = useState(null); // holds concert.id for ticketing dropdown
   
   // Supabase 기록 훅
   const { addRecord } = useRecords();
@@ -61,6 +62,47 @@ export default function ConcertsPage({ onNavigate }) {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
+
+        {/* Search Ticketing Links */}
+        {search.trim() && (
+          <div className={styles.searchTicketingLinks}>
+            <span className={styles.searchLinksLabel}>예매처 검색:</span>
+            <div className={styles.searchLinksRow}>
+              <a
+                href={`https://ticket.interpark.com/search?keyword=${encodeURIComponent(search.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.searchLinkBtn}
+              >
+                인터파크
+              </a>
+              <a
+                href={`https://ticket.yes24.com/search?query=${encodeURIComponent(search.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.searchLinkBtn}
+              >
+                YES24
+              </a>
+              <a
+                href={`https://ticket.melon.com/search/index.htm?keyword=${encodeURIComponent(search.trim())}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.searchLinkBtn}
+              >
+                멜론티켓
+              </a>
+              <a
+                href={`https://search.naver.com/search.naver?query=${encodeURIComponent(search.trim() + ' 예매')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.searchLinkBtn}
+              >
+                네이버 예매
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Filters */}
         <div className={styles.filters}>
@@ -149,15 +191,17 @@ export default function ConcertsPage({ onNavigate }) {
 
               {/* Action buttons */}
               <div className={styles.cardActions}>
-                <a
-                  href={concert.ticketingUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.ticketBtn}
-                  onClick={e => concert.status === 'sold_out' && e.preventDefault()}
+                <button
+                  className={`${styles.ticketBtn} ${openTicketLinks === concert.id ? styles.activeTicketBtn : ''}`}
+                  disabled={concert.status === 'sold_out'}
+                  onClick={() => {
+                    if (concert.status !== 'sold_out') {
+                      setOpenTicketLinks(openTicketLinks === concert.id ? null : concert.id);
+                    }
+                  }}
                 >
                   {concert.status === 'sold_out' ? '매진' : '예매하기'}
-                </a>
+                </button>
                 {concert.reviewCount > 0 && (
                   <button className={styles.reviewBtn}>
                     <span>후기 보러가기</span>
@@ -165,6 +209,46 @@ export default function ConcertsPage({ onNavigate }) {
                   </button>
                 )}
               </div>
+
+              {openTicketLinks === concert.id && (
+                <div className={styles.ticketLinksDropdown}>
+                  <div className={styles.ticketLinksDropdownTitle}>예매처 선택</div>
+                  <div className={styles.ticketLinksGrid}>
+                    <a
+                      href={`https://ticket.interpark.com/search?keyword=${encodeURIComponent(concert.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.ticketLinkItem}
+                    >
+                      🎟️ 인터파크
+                    </a>
+                    <a
+                      href={`https://ticket.yes24.com/search?query=${encodeURIComponent(concert.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.ticketLinkItem}
+                    >
+                      🎟️ YES24
+                    </a>
+                    <a
+                      href={`https://ticket.melon.com/search/index.htm?keyword=${encodeURIComponent(concert.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.ticketLinkItem}
+                    >
+                      🎟️ 멜론티켓
+                    </a>
+                    <a
+                      href={`https://search.naver.com/search.naver?query=${encodeURIComponent(concert.name + ' 예매')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.ticketLinkItem}
+                    >
+                      💚 네이버 예매
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>
