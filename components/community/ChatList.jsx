@@ -7,9 +7,12 @@ import styles from './ChatList.module.css';
 import { Sparkles, Clock, User } from 'lucide-react';
 
 export default function ChatList({ onOpenChat }) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 데모 여부에 따른 테이블명 결정
+  const CHATS_TABLE = isDemoMode ? 'demo_chats' : 'chats';
 
   useEffect(() => {
     if (!user) return;
@@ -37,9 +40,9 @@ export default function ChatList({ onOpenChat }) {
               .eq('id', recipientId)
               .single();
 
-            // 마지막 메시지
+            // 마지막 메시지 (분리된 테이블에서 조회)
             const { data: lastMsgData } = await supabase
-              .from('chats')
+              .from(CHATS_TABLE)
               .select('message, created_at, sender_id, is_read')
               .eq('room_id', room.id)
               .order('created_at', { ascending: false })
@@ -47,9 +50,9 @@ export default function ChatList({ onOpenChat }) {
 
             const lastMsg = lastMsgData?.[0] || null;
 
-            // 읽지 않은 메시지 수 (내가 받은 것 중 is_read=false)
+            // 읽지 않은 메시지 수 (분리된 테이블에서 조회)
             const { count: unread } = await supabase
-              .from('chats')
+              .from(CHATS_TABLE)
               .select('id', { count: 'exact', head: true })
               .eq('room_id', room.id)
               .eq('receiver_id', user.id)
@@ -71,9 +74,36 @@ export default function ChatList({ onOpenChat }) {
           })
         );
 
-        setChats(enriched);
+        if (isDemoMode) {
+          const { MOCK_CHATS } = require('@/lib/mockData');
+          const mockEnriched = MOCK_CHATS.map(mc => {
+            const isExpired = new Date(mc.expiresAt) < new Date();
+            return {
+              roomId: mc.roomId,
+              recipientId: mc.recipientId,
+              recipientNickname: mc.recipientNickname,
+              recipientEmoji: mc.recipientEmoji,
+              lastMessage: mc.lastMessage,
+              lastMessageAt: mc.lastMessageAt,
+              expiresAt: mc.expiresAt,
+              unread: mc.unread,
+              isExpired,
+            };
+          });
+
+          // Prepend mock chats, keeping roomIds unique
+          const combined = [...mockEnriched];
+          enriched.forEach(c => {
+            if (!combined.some(x => x.roomId === c.roomId)) {
+              combined.push(c);
+            }
+          });
+          setChats(combined);
+        } else {
+          setChats(enriched);
+        }
       } catch (err) {
-        console.error('Error fetching chats:', err.message);
+        console.error(`Error fetching chats from ${CHATS_TABLE}:`, err.message);
       } finally {
         setLoading(false);
       }
@@ -85,11 +115,11 @@ export default function ChatList({ onOpenChat }) {
     const channel = supabase
       .channel('chat_rooms_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms' }, fetchChats)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, fetchChats)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHATS_TABLE }, fetchChats)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user?.id]);
+  }, [user?.id, isDemoMode, CHATS_TABLE]);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
@@ -168,7 +198,11 @@ export default function ChatList({ onOpenChat }) {
               disabled={chat.isExpired}
             >
               <div className={styles.chatAvatar}>
-                <User size={24} color="#0054CB" />
+                {chat.recipientEmoji ? (
+                  <span style={{ fontSize: 24 }}>{chat.recipientEmoji}</span>
+                ) : (
+                  <User size={24} color="#0054CB" />
+                )}
                 {chat.unread > 0 && (
                   <span className={styles.unreadDot}>{chat.unread}</span>
                 )}

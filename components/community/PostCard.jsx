@@ -7,12 +7,85 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
 export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const authorId = post.author?.id;
   const isAuthor = user && user.id === authorId;
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [commentsList, setCommentsList] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+
+  const COMMENTS_TABLE = isDemoMode ? 'demo_comments' : 'comments';
+
+  const fetchComments = async () => {
+    setLoadingComments(true);
+    try {
+      let query;
+      if (isDemoMode) {
+        query = supabase
+          .from(COMMENTS_TABLE)
+          .select('*')
+          .eq('post_id', post.id)
+          .order('created_at', { ascending: true });
+      } else {
+        query = supabase
+          .from(COMMENTS_TABLE)
+          .select(`
+            *,
+            users (
+              nickname,
+              profile_emoji
+            )
+          `)
+          .eq('post_id', post.id)
+          .order('created_at', { ascending: true });
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      setCommentsList(data || []);
+    } catch (err) {
+      console.error('댓글 조회 실패:', err.message);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!commentInput.trim()) return;
+    const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
+    if (!currentUserId) {
+      alert('로그인이 필요합니다.');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from(COMMENTS_TABLE)
+        .insert([{
+          post_id: post.id,
+          user_id: currentUserId,
+          content: commentInput.trim()
+        }]);
+
+      if (error) throw error;
+      setCommentInput('');
+      fetchComments();
+      post.comments = (post.comments || 0) + 1;
+    } catch (err) {
+      console.error('댓글 등록 실패:', err.message);
+      alert('댓글 등록에 실패했습니다.');
+    }
+  };
+
+  const handleToggleComments = () => {
+    const nextShow = !showComments;
+    setShowComments(nextShow);
+    if (nextShow) {
+      fetchComments();
+    }
+  };
 
   const timeAgo = (dateStr) => {
     const diff = Date.now() - new Date(dateStr).getTime();
@@ -59,7 +132,11 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
           onClick={() => onAuthorClick && onAuthorClick(post.author)}
         >
           <div className={styles.avatar}>
-            <User size={20} color="#0054CB" />
+            {post.author?.profileEmoji ? (
+              <span style={{ fontSize: 20 }}>{post.author.profileEmoji}</span>
+            ) : (
+              <User size={20} color="#0054CB" />
+            )}
           </div>
           <div className={styles.authorInfo}>
             <div className={styles.authorName}>
@@ -100,7 +177,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
         </button>
         <button
           className={`${styles.actionBtn} ${showComments ? styles.activeAction : ''}`}
-          onClick={() => setShowComments(!showComments)}
+          onClick={handleToggleComments}
         >
           <MessageCircle size={18} color={showComments ? '#0054CB' : '#667085'} />
           <span>{post.comments}</span>
@@ -140,16 +217,32 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
             <button
               className={styles.sendBtn}
               disabled={!commentInput.trim()}
-              onClick={() => {
-                setCommentInput('');
-              }}
+              onClick={handleAddComment}
             >
               <ArrowUp size={16} color="white" />
             </button>
           </div>
 
-          <div className={styles.commentList}>
-            {/* 실제 댓글 목록은 추후 구현 */}
+          <div className={styles.commentList} style={{ maxHeight: '200px', overflowY: 'auto', marginTop: '10px' }}>
+            {loadingComments ? (
+              <div style={{ textAlign: 'center', padding: '10px', fontSize: 12, color: '#667085' }}>불러오는 중...</div>
+            ) : commentsList.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '10px', fontSize: 12, color: '#667085' }}>첫 댓글을 작성해보세요! 💬</div>
+            ) : (
+              commentsList.map(c => {
+                const nickname = isDemoMode ? '데모 사용자' : (c.users?.nickname || '알 수 없는 유저');
+                const emoji = isDemoMode ? '✨' : (c.users?.profile_emoji || '🧑‍🎤');
+                return (
+                  <div key={c.id} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: '1px solid #F2F4F7', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: 16 }}>{emoji}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                      <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>
+                      <span style={{ fontSize: 13, color: '#475467' }}>{c.content}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}

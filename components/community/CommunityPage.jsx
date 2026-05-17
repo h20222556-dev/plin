@@ -26,10 +26,7 @@ const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemo
   const [startingChat, setStartingChat] = useState(false);
 
   const handleStartChat = async (targetUser) => {
-    if (isDemoMode) {
-      alert('채팅은 실제 로그인 후 이용할 수 있어요.');
-      return;
-    }
+    // Allow chatting in demo mode
     if (!user) {
       alert('로그인이 필요합니다.');
       return;
@@ -63,7 +60,7 @@ const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemo
       <div className={styles.header}>
         <div className={styles.headerTop}>
           <h1 className={styles.title}>커뮤니티</h1>
-          {activeTab === 'feed' && !isDemoMode && (
+          {activeTab === 'feed' && (
             <button className={styles.writeBtn} onClick={() => setShowNewPost(true)}>
               글쓰기
             </button>
@@ -87,20 +84,7 @@ const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemo
       {/* Feed */}
       {activeTab === 'feed' && (
         <div className={styles.feed}>
-          {isDemoMode ? (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '100px 20px', 
-              color: '#667085',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              alignItems: 'center'
-            }}>
-              <p style={{ fontSize: '1.1rem', fontWeight: '500' }}>커뮤니티는 실제 로그인 후 이용할 수 있어요.</p>
-              <p style={{ fontSize: '0.9rem', opacity: 0.8 }}>다른 팬들과 소통하고 싶다면 지금 로그인해보세요!</p>
-            </div>
-          ) : loading ? (
+          {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>불러오는 중...</div>
           ) : (posts ?? []).length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
@@ -124,13 +108,7 @@ const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemo
 
       {/* Chats — 채팅 목록 (현재 채팅방이 열려 있지 않을 때) */}
       {activeTab === 'chats' && !activeChat && (
-        isDemoMode ? (
-          <div style={{ textAlign: 'center', padding: '100px 20px', color: '#667085' }}>
-            채팅은 실제 로그인 후 이용할 수 있어요.
-          </div>
-        ) : (
-          <ChatList onOpenChat={setActiveChat} />
-        )
+        <ChatList onOpenChat={setActiveChat} />
       )}
 
       {/* New Post Modal */}

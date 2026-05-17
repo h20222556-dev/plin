@@ -292,3 +292,86 @@ ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "follows_select" ON public.follows FOR SELECT USING (TRUE);
 CREATE POLICY "follows_insert" ON public.follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
 CREATE POLICY "follows_delete" ON public.follows FOR DELETE USING (auth.uid() = follower_id);
+
+
+-- ============================================================
+-- 9. 데모 모드 (Demo Mode) 전용 테이블 정의 및 모의 데이터
+-- ============================================================
+
+-- 이전 데모 테이블이 있다면 먼저 삭제 (컬럼 스키마 변경 적용용)
+DROP TABLE IF EXISTS public.demo_comments CASCADE;
+DROP TABLE IF EXISTS public.demo_likes CASCADE;
+DROP TABLE IF EXISTS public.demo_posts CASCADE;
+DROP TABLE IF EXISTS public.demo_chats CASCADE;
+
+-- ── 9.1 demo_posts 테이블 ──
+CREATE TABLE IF NOT EXISTS public.demo_posts (
+  id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id        UUID        DEFAULT '00000000-0000-0000-0000-000000000001'::UUID,
+  content        TEXT        NOT NULL CHECK (char_length(content) <= 500),
+  emotion        TEXT,
+  tags           TEXT[]      NOT NULL DEFAULT '{}',
+  likes_count    INT         NOT NULL DEFAULT 0,
+  concert_name   TEXT,
+  created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.demo_posts ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access demo_posts" ON public.demo_posts FOR ALL USING (true) WITH CHECK (true);
+
+-- ── 9.2 demo_comments 테이블 ──
+CREATE TABLE IF NOT EXISTS public.demo_comments (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  post_id    UUID        NOT NULL REFERENCES public.demo_posts(id) ON DELETE CASCADE,
+  user_id    UUID        DEFAULT '00000000-0000-0000-0000-000000000001'::UUID,
+  content    TEXT        NOT NULL CHECK (char_length(content) <= 300),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.demo_comments ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access demo_comments" ON public.demo_comments FOR ALL USING (true) WITH CHECK (true);
+
+-- ── 9.3 demo_likes 테이블 ──
+CREATE TABLE IF NOT EXISTS public.demo_likes (
+  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id    UUID        DEFAULT '00000000-0000-0000-0000-000000000001'::UUID,
+  post_id    UUID        NOT NULL REFERENCES public.demo_posts(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (user_id, post_id)
+);
+
+ALTER TABLE public.demo_likes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access demo_likes" ON public.demo_likes FOR ALL USING (true) WITH CHECK (true);
+
+-- ── 9.4 demo_chats 테이블 ──
+CREATE TABLE IF NOT EXISTS public.demo_chats (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  room_id     UUID        NOT NULL,
+  sender_id   UUID        DEFAULT '00000000-0000-0000-0000-000000000001'::UUID,
+  receiver_id UUID,
+  message     TEXT        NOT NULL CHECK (char_length(message) <= 1000),
+  is_read     BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+ALTER TABLE public.demo_chats ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public access demo_chats" ON public.demo_chats FOR ALL USING (true) WITH CHECK (true);
+
+-- ── 9.5 초기 모의 데이터 (Mock Data) 삽입 스크립트 ──
+-- 1. 데모 게시글 삽입
+INSERT INTO public.demo_posts (id, content, emotion, tags, likes_count, concert_name, created_at)
+VALUES 
+  ('11111111-1111-1111-1111-111111111111', '정말 감동적이었어요! 앙코르까지 완벽했습니다 🎵', '😭', ARRAY['아이유', 'H_E_R', '콘서트후기'], 42, '2024 IU H.E.R. WORLD TOUR CONCERT', NOW() - INTERVAL '2 hours'),
+  ('22222222-2222-2222-2222-222222222222', '오늘 공연 세트리스트 정리했어요! 다들 떼창 준비 되셨죠? 🔥', '🔥', ARRAY['세븐틴', '세트리스트', 'FOLLOW'], 15, 'SEVENTEEN TOUR ‘FOLLOW’ AGAIN TO SEOUL', NOW() - INTERVAL '1 day'),
+  ('33333333-3333-3333-3333-333333333333', '다음달 콘서트 같이 갈 메이트 구해요! 맛있는 것도 먹고 공연도 같이 봐요', '🥰', ARRAY['메이트구함', '콘서트', '친구'], 5, 'Ed Sheeran +-=÷x Tour in Seoul', NOW() - INTERVAL '3 days')
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. 데모 댓글 삽입
+INSERT INTO public.demo_comments (post_id, content, created_at)
+VALUES 
+  ('11111111-1111-1111-1111-111111111111', '저도 어제 다녀왔는데 앵앵콜 진짜 눈물 흘렸습니다 ㅠㅠ', NOW() - INTERVAL '1 hour'),
+  ('11111111-1111-1111-1111-111111111111', '다음 투어도 무조건 갈 거예요!', NOW() - INTERVAL '30 minutes'),
+  ('22222222-2222-2222-2222-222222222222', '정리 감사합니다! 셋리 대박이네요.', NOW() - INTERVAL '12 hours')
+ON CONFLICT DO NOTHING;
+
