@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { MOCK_PERFORMANCES } from '@/lib/mockData';
 import styles from './ConcertsPage.module.css';
 import ConcertDetailModal from './ConcertDetailModal';
 import dynamic from 'next/dynamic';
+import UnifiedSearchBar from '@/components/search/UnifiedSearchBar';
 const AddRecordModal = dynamic(() => import('../records/AddRecordModal'), { ssr: false });
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
 
-export default function ConcertsPage({ onNavigate }) {
+export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   const { isDemoMode } = useAuth();
   // 데모 모드일 경우 Mock 데이터 사용
   const [concerts, setConcerts] = useState(isDemoMode ? MOCK_PERFORMANCES : []);
@@ -20,6 +21,14 @@ export default function ConcertsPage({ onNavigate }) {
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [recordContext, setRecordContext] = useState(null);
   const [openTicketLinks, setOpenTicketLinks] = useState(null); // holds concert.id for ticketing dropdown
+  
+  // Consume query from unified search modal
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.__searchQuery) {
+      setSearch(window.__searchQuery);
+      window.__searchQuery = ''; // Consume it
+    }
+  }, []);
   
   // Supabase 기록 훅
   const { addRecord } = useRecords();
@@ -53,14 +62,8 @@ export default function ConcertsPage({ onNavigate }) {
       {/* Header */}
       <div className={styles.header}>
         <h1 className={styles.title}>공연 정보</h1>
-        <div className={styles.searchBar}>
-          <Search size={20} color="#667085" />
-          <input
-            className={styles.searchInput}
-            placeholder="공연명, 아티스트 검색"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
+        <div className={styles.searchBarContainer}>
+          <UnifiedSearchBar onClick={onOpenSearch} />
         </div>
 
         {/* Search Ticketing Links */}

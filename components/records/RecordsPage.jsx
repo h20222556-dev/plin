@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './RecordsPage.module.css';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -19,10 +19,18 @@ const VIEWS = [
 ];
 
 export default function RecordsPage({ onNavigate }) {
-  const { records, loading, deleteRecord } = useRecords();
+  const { records, loading, deleteRecord, focusedRecord } = useRecords();
   const { user } = useAuth();
   const [view, setView] = useState('map');
   const [selectedRecord, setSelectedRecord] = useState(null);
+
+  // Listen to focusedRecord updates from unified search
+  useEffect(() => {
+    if (focusedRecord) {
+      setView('map');
+      setSelectedRecord(focusedRecord);
+    }
+  }, [focusedRecord]);
 
   const handleRecordSelect = (record) => {
     setSelectedRecord(record);

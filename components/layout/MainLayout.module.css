@@ -69,6 +69,12 @@
   padding: 8px 0;
 }
 
+.searchBarWrapper {
+  flex: 1;
+  max-width: 260px;
+  margin: 0 12px;
+}
+
 .logoText {
   font-size: 24px;
   font-weight: 900;
