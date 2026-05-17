@@ -230,3 +230,114 @@
   transition: all var(--transition-base);
 }
 .reviewBtn:active { background: var(--bg-surface); }
+
+.searchTicketingLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 8px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.searchLinksLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.searchLinksRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.searchLinkBtn {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: white;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.searchLinkBtn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-surface);
+}
+
+.activeTicketBtn {
+  background: var(--bg-secondary) !important;
+  color: var(--primary) !important;
+  border: 1px solid var(--primary) !important;
+}
+
+.ticketLinksDropdown {
+  background: var(--bg-secondary);
+  border-top: 1px dashed var(--border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: slideDown 0.2s ease-out;
+}
+
+.ticketLinksDropdownTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ticketLinksGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.ticketLinkItem {
+  padding: 10px;
+  background: white;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: center;
+  transition: all var(--transition-base);
+}
+
+.ticketLinkItem:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--bg-surface);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
