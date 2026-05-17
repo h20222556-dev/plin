@@ -298,6 +298,12 @@ CREATE POLICY "follows_delete" ON public.follows FOR DELETE USING (auth.uid() = 
 -- 9. 데모 모드 (Demo Mode) 전용 테이블 정의 및 모의 데이터
 -- ============================================================
 
+-- 이전 데모 테이블이 있다면 먼저 삭제 (컬럼 스키마 변경 적용용)
+DROP TABLE IF EXISTS public.demo_comments CASCADE;
+DROP TABLE IF EXISTS public.demo_likes CASCADE;
+DROP TABLE IF EXISTS public.demo_posts CASCADE;
+DROP TABLE IF EXISTS public.demo_chats CASCADE;
+
 -- ── 9.1 demo_posts 테이블 ──
 CREATE TABLE IF NOT EXISTS public.demo_posts (
   id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
