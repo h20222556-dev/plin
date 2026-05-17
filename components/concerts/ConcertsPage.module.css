@@ -23,6 +23,11 @@
   color: var(--text-primary);
 }
 
+.searchBarContainer {
+  display: flex;
+  width: 100%;
+}
+
 .searchBar {
   display: flex;
   align-items: center;

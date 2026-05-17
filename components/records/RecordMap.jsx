@@ -5,6 +5,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import styles from './RecordMap.module.css';
+import { useRecords } from '@/lib/hooks/useRecords';
 
 // Leaflet 기본 아이콘 깨짐 방지 (useEffect 내에서 처리 권장)
 const fixLeafletIcon = () => {
@@ -28,6 +29,7 @@ function ChangeView({ center, zoom }) {
 }
 
 export default function RecordMap({ records, onSelectRecord }) {
+  const { focusedRecord } = useRecords();
   const [center, setCenter] = useState([37.5665, 126.9780]);
   const [zoom, setZoom] = useState(13);
 
@@ -35,14 +37,22 @@ export default function RecordMap({ records, onSelectRecord }) {
     fixLeafletIcon();
   }, []);
 
+  // Listen to focusedRecord from unified search
   useEffect(() => {
-    if (records.length > 0) {
+    if (focusedRecord && focusedRecord.lat && focusedRecord.lng) {
+      setCenter([focusedRecord.lat, focusedRecord.lng]);
+      setZoom(15);
+    }
+  }, [focusedRecord]);
+
+  useEffect(() => {
+    if (records.length > 0 && !focusedRecord) {
       const validRecords = records.filter(r => r.lat && r.lng);
       if (validRecords.length > 0) {
         setCenter([validRecords[0].lat, validRecords[0].lng]);
       }
     }
-  }, [records]);
+  }, [records, focusedRecord]);
 
   // 커스텀 마커 아이콘 생성 함수
   const createCustomIcon = (emotion) => {

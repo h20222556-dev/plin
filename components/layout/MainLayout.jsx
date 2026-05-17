@@ -11,6 +11,8 @@ import { Map, Music, Plus, MessageCircle, User, Info } from 'lucide-react';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import UnifiedSearchBar from '@/components/search/UnifiedSearchBar';
+import SearchModal from '@/components/search/SearchModal';
 
 const AddRecordModal = dynamic(() => import('@/components/records/AddRecordModal'), { ssr: false });
 
@@ -25,6 +27,7 @@ const TABS = [
 export default function MainLayout() {
   const [activeTab, setActiveTab] = useState('records');
   const [isAddOpen, setIsAddOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { addRecord } = useRecords();
   const { user } = useAuth();
   const handleSaveRecord = async (form) => {
@@ -42,11 +45,11 @@ export default function MainLayout() {
 
   const renderPage = () => {
     switch (activeTab) {
-      case 'records': return <RecordsPage onNavigate={setActiveTab} />;
-      case 'concerts': return <ConcertsPage onNavigate={setActiveTab} />;
-      case 'community': return <CommunityPage onNavigate={setActiveTab} />;
-      case 'profile': return <ProfilePage onNavigate={setActiveTab} />;
-      default: return <RecordsPage onNavigate={setActiveTab} />;
+      case 'records': return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'concerts': return <ConcertsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'community': return <CommunityPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'profile': return <ProfilePage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      default: return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
     }
   };
 
@@ -65,6 +68,11 @@ export default function MainLayout() {
         <button className={styles.logoBtn} onClick={() => setActiveTab('records')}>
           <h1 className={styles.logoText}>PLIN</h1>
         </button>
+        
+        <div className={styles.searchBarWrapper}>
+          <UnifiedSearchBar onClick={() => setIsSearchOpen(true)} />
+        </div>
+
         {isDemoMode && (
           <button className={styles.demoBadge} onClick={handleDemoBadgeClick}>
             <span>데모 모드</span>
@@ -126,6 +134,13 @@ export default function MainLayout() {
           onSave={handleSaveRecord}
         />
       )}
+
+      {/* Global Search Modal */}
+      <SearchModal
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+        onNavigate={(tabId) => setActiveTab(tabId)}
+      />
     </div>
   );
 }
