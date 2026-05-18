@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Search, MapPin, Music, MessageCircle, User, Calendar, ExternalLink } from 'lucide-react';
 import styles from './SearchModal.module.css';
 import { useUnifiedSearch } from '@/lib/hooks/useUnifiedSearch';
@@ -8,6 +8,7 @@ import { useRecords } from '@/lib/hooks/useRecords';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import UserProfileModal from '@/components/community/UserProfileModal';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
@@ -15,6 +16,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { user, isDemoMode } = useAuth();
   const router = useRouter();
   const inputRef = useRef(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Auto focus input when modal opens
   useEffect(() => {
@@ -46,32 +48,41 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     onClose();
   };
 
-  const handleSearchUserClick = async (selectedUser) => {
-    if (!selectedUser) return;
+  const handleSearchUserClick = async (u) => {
+    if (!u) return;
     
-    let currentUserId = null;
-    if (isDemoMode) {
-      currentUserId = 'demo_user';
-    } else {
-      const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        currentUserId = authUser.id;
+    try {
+      const { data: dbUser, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', u.id)
+        .single();
+      
+      if (!error && dbUser) {
+        setSelectedUser({
+          id: dbUser.id,
+          nickname: dbUser.nickname,
+          profileEmoji: dbUser.profile_emoji || '🧑‍🎤',
+          bio: dbUser.bio,
+          isPublic: dbUser.is_public ?? true
+        });
+      } else {
+        setSelectedUser({
+          id: u.id,
+          nickname: u.nickname,
+          profileEmoji: u.profileEmoji || '🧑‍🎤',
+          isPublic: true
+        });
       }
+    } catch (err) {
+      console.error(err);
+      setSelectedUser({
+        id: u.id,
+        nickname: u.nickname,
+        profileEmoji: u.profileEmoji || '🧑‍🎤',
+        isPublic: true
+      });
     }
-
-    if (!currentUserId) {
-      router.push('/login');
-      return;
-    }
-
-    if (selectedUser.id === currentUserId) {
-      // 자기 자신을 클릭한 경우
-      router.push('/profile/settings');
-    } else {
-      // 다른 유저를 클릭한 경우
-      router.push(`/profile/${selectedUser.id}`);
-    }
-    onClose();
   };
 
   const handleMoreClick = (tabId) => {
@@ -287,6 +298,18 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
           )}
         </div>
       </div>
+
+      {selectedUser && (
+        <UserProfileModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onStartChat={() => {
+            setSelectedUser(null);
+            onNavigate('community');
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }
