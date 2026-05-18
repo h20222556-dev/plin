@@ -32,13 +32,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
       } else {
         query = supabase
           .from(COMMENTS_TABLE)
-          .select(`
-            *,
-            users (
-              nickname,
-              profile_emoji
-            )
-          `)
+          .select('*, users(nickname, profile_emoji)')
           .eq('post_id', post.id)
           .order('created_at', { ascending: true });
       }
@@ -61,7 +55,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
     }
 
     try {
-      const { error } = await supabase
+      let insertQuery = supabase
         .from(COMMENTS_TABLE)
         .insert([{
           post_id: post.id,
@@ -69,9 +63,17 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
           content: commentInput.trim()
         }]);
 
+      if (isDemoMode) {
+        insertQuery = insertQuery.select('*').single();
+      } else {
+        insertQuery = insertQuery.select('*, users(nickname, profile_emoji)').single();
+      }
+
+      const { data: newComment, error } = await insertQuery;
+
       if (error) throw error;
       setCommentInput('');
-      fetchComments();
+      setCommentsList(prev => [...prev, newComment]);
       post.comments = (post.comments || 0) + 1;
     } catch (err) {
       console.error('댓글 등록 실패:', err.message);
