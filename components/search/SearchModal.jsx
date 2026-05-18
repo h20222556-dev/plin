@@ -7,11 +7,12 @@ import { useUnifiedSearch } from '@/lib/hooks/useUnifiedSearch';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
   const { setFocusedRecord } = useRecords();
-  const { user } = useAuth();
+  const { user, isDemoMode } = useAuth();
   const router = useRouter();
   const inputRef = useRef(null);
 
@@ -45,11 +46,29 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     onClose();
   };
 
-  const handleProfileClick = (selectedUser) => {
+  const handleSearchUserClick = async (selectedUser) => {
     if (!selectedUser) return;
-    if (user && selectedUser.id === user.id) {
+    
+    let currentUserId = null;
+    if (isDemoMode) {
+      currentUserId = 'demo_user';
+    } else {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        currentUserId = authUser.id;
+      }
+    }
+
+    if (!currentUserId) {
+      router.push('/login');
+      return;
+    }
+
+    if (selectedUser.id === currentUserId) {
+      // 자기 자신을 클릭한 경우
       router.push('/profile/settings');
     } else {
+      // 다른 유저를 클릭한 경우
       router.push(`/profile/${selectedUser.id}`);
     }
     onClose();
@@ -253,7 +272,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                   </div>
                   <div className={styles.sectionGrid}>
                     {results.users.slice(0, 3).map((u) => (
-                      <div key={u.id} className={styles.resultCard} onClick={() => handleProfileClick(u)}>
+                      <div key={u.id} className={styles.resultCard} onClick={() => handleSearchUserClick(u)}>
                         <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
                         <div className={styles.cardInfo}>
                           <h4 className={styles.cardTitle}>{u.nickname}</h4>
