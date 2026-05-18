@@ -7,10 +7,10 @@ import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ProfilePage.module.css';
 import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight } from 'lucide-react';
 
-export default function ProfilePage() {
+export default function ProfilePage({ initialSection = 'profile' }) {
   const { user, logout, updateProfile } = useAuth();
   const { records } = useRecords();
-  const [activeSection, setActiveSection] = useState('profile'); // profile | settings
+  const [activeSection, setActiveSection] = useState(initialSection); // profile | settings
   const [editMode, setEditMode] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [isPublic, setIsPublic] = useState(user?.is_public ?? true);

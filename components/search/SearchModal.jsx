@@ -1,15 +1,22 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Search, MapPin, Music, MessageCircle, User, Calendar, ExternalLink } from 'lucide-react';
 import styles from './SearchModal.module.css';
 import { useUnifiedSearch } from '@/lib/hooks/useUnifiedSearch';
 import { useRecords } from '@/lib/hooks/useRecords';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
+import UserProfileModal from '@/components/community/UserProfileModal';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
   const { setFocusedRecord } = useRecords();
+  const { user, isDemoMode } = useAuth();
+  const router = useRouter();
   const inputRef = useRef(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
   // Auto focus input when modal opens
   useEffect(() => {
@@ -41,9 +48,15 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     onClose();
   };
 
-  const handleProfileClick = () => {
-    onNavigate('profile');
-    onClose();
+  const handleSearchUserClick = (u) => {
+    if (!u) return;
+    setSelectedUser({
+      id: u.id,
+      nickname: u.nickname,
+      profileEmoji: u.profileEmoji || '🧑‍🎤',
+      isPublic: u.isPublic ?? true,
+      bio: u.bio || ''
+    });
   };
 
   const handleMoreClick = (tabId) => {
@@ -244,7 +257,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                   </div>
                   <div className={styles.sectionGrid}>
                     {results.users.slice(0, 3).map((u) => (
-                      <div key={u.id} className={styles.resultCard} onClick={handleProfileClick}>
+                      <div key={u.id} className={styles.resultCard} onClick={() => handleSearchUserClick(u)}>
                         <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
                         <div className={styles.cardInfo}>
                           <h4 className={styles.cardTitle}>{u.nickname}</h4>
@@ -259,6 +272,18 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
           )}
         </div>
       </div>
+
+      {selectedUser && (
+        <UserProfileModal
+          user={selectedUser}
+          onClose={() => setSelectedUser(null)}
+          onStartChat={() => {
+            setSelectedUser(null);
+            onNavigate('community');
+            onClose();
+          }}
+        />
+      )}
     </div>
   );
 }
