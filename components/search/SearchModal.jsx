@@ -9,6 +9,8 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import UserProfileModal from '@/components/community/UserProfileModal';
+import ChatModal from '@/components/community/ChatModal';
+import { getOrCreateChatRoom } from '@/lib/hooks/useChat';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
@@ -17,6 +19,8 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const router = useRouter();
   const inputRef = useRef(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [activeChat, setActiveChat] = useState(null);
+  const [startingChat, setStartingChat] = useState(false);
 
   // Auto focus input when modal opens
   useEffect(() => {
@@ -57,6 +61,44 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
       isPublic: u.isPublic ?? true,
       bio: u.bio || ''
     });
+  };
+
+  const handleStartChat = async (targetUser) => {
+    let currentUserId = null;
+    if (isDemoMode) {
+      currentUserId = '00000000-0000-0000-0000-000000000001';
+    } else {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        currentUserId = authUser.id;
+      }
+    }
+
+    if (!currentUserId) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    if (currentUserId === targetUser.id) {
+      alert('자기 자신과 채팅할 수 없습니다.');
+      return;
+    }
+    
+    setStartingChat(true);
+    try {
+      const room = await getOrCreateChatRoom(currentUserId, targetUser.id);
+      setSelectedUser(null); // close profile modal
+      setActiveChat({
+        roomId: room.id,
+        recipientId: targetUser.id,
+        recipientNickname: targetUser.nickname,
+        expiresAt: room.expires_at,
+      });
+    } catch (err) {
+      console.error('채팅방 생성 실패:', err.message);
+      alert('채팅을 시작하지 못했습니다.');
+    } finally {
+      setStartingChat(false);
+    }
   };
 
   const handleMoreClick = (tabId) => {
@@ -277,12 +319,13 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
         <UserProfileModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
-          onStartChat={() => {
-            setSelectedUser(null);
-            onNavigate('community');
-            onClose();
-          }}
+          onStartChat={() => handleStartChat(selectedUser)}
+          isStartingChat={startingChat}
         />
+      )}
+
+      {activeChat && (
+        <ChatModal chat={activeChat} onClose={() => setActiveChat(null)} />
       )}
     </div>
   );
