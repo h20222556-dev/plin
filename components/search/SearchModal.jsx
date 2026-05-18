@@ -48,41 +48,15 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     onClose();
   };
 
-  const handleSearchUserClick = async (u) => {
+  const handleSearchUserClick = (u) => {
     if (!u) return;
-    
-    try {
-      const { data: dbUser, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', u.id)
-        .single();
-      
-      if (!error && dbUser) {
-        setSelectedUser({
-          id: dbUser.id,
-          nickname: dbUser.nickname,
-          profileEmoji: dbUser.profile_emoji || '🧑‍🎤',
-          bio: dbUser.bio,
-          isPublic: dbUser.is_public ?? true
-        });
-      } else {
-        setSelectedUser({
-          id: u.id,
-          nickname: u.nickname,
-          profileEmoji: u.profileEmoji || '🧑‍🎤',
-          isPublic: true
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      setSelectedUser({
-        id: u.id,
-        nickname: u.nickname,
-        profileEmoji: u.profileEmoji || '🧑‍🎤',
-        isPublic: true
-      });
-    }
+    setSelectedUser({
+      id: u.id,
+      nickname: u.nickname,
+      profileEmoji: u.profileEmoji || '🧑‍🎤',
+      isPublic: u.isPublic ?? true,
+      bio: u.bio || ''
+    });
   };
 
   const handleMoreClick = (tabId) => {
