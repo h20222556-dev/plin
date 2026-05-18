@@ -12,6 +12,90 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
   const [stats, setStats] = useState({ recordCount: 0, postCount: 0 });
   const [loadingRecords, setLoadingRecords] = useState(true);
 
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  useEffect(() => {
+    const checkFollowStatus = async () => {
+      try {
+        let currentUserId = null;
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          currentUserId = authUser.id;
+        }
+
+        if (!currentUserId || user.id === 'demo_user' || currentUserId === 'demo_user') {
+          return;
+        }
+
+        const { data } = await supabase
+          .from('follows')
+          .select('id')
+          .eq('follower_id', currentUserId)
+          .eq('following_id', user.id)
+          .maybeSingle();
+
+        setIsFollowing(!!data);
+      } catch (err) {
+        console.error('Check follow error:', err);
+      }
+    };
+
+    checkFollowStatus();
+  }, [user.id]);
+
+  const handleFollowToggle = async () => {
+    if (followLoading) return;
+    setFollowLoading(true);
+
+    try {
+      let currentUserId = null;
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (authUser) {
+        currentUserId = authUser.id;
+      }
+
+      if (!currentUserId) {
+        alert('로그인이 필요한 기능입니다.');
+        return;
+      }
+
+      if (user.id === 'demo_user' || currentUserId === 'demo_user') {
+        setIsFollowing(prev => !prev);
+        setFollowLoading(false);
+        return;
+      }
+
+      if (isFollowing) {
+        // Unfollow
+        const { error } = await supabase
+          .from('follows')
+          .delete()
+          .eq('follower_id', currentUserId)
+          .eq('following_id', user.id);
+
+        if (error) throw error;
+        setIsFollowing(false);
+      } else {
+        // Follow
+        const { error } = await supabase
+          .from('follows')
+          .insert([{
+            follower_id: currentUserId,
+            following_id: user.id
+          }]);
+
+        if (error) throw error;
+        setIsFollowing(true);
+      }
+    } catch (err) {
+      console.error('Follow toggle error:', err);
+      alert('팔로우 처리에 실패했습니다.');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   useEffect(() => {
     const fetchUserData = async () => {
       setLoadingRecords(true);
@@ -93,9 +177,13 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
               {isStartingChat ? <Loader size={18} className="spin" /> : <MessageCircle size={18} />}
               <span>채팅하기</span>
             </button>
-            <button className={styles.followBtn}>
-              <Heart size={18} color="#0054CB" />
-              <span>팔로우</span>
+            <button
+              className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
+              onClick={handleFollowToggle}
+              disabled={followLoading}
+            >
+              <Heart size={18} color={isFollowing ? "#FF4B4B" : "#0054CB"} fill={isFollowing ? "#FF4B4B" : "none"} />
+              <span>{followLoading ? '처리 중...' : isFollowing ? '팔로우 중' : '팔로우'}</span>
             </button>
           </div>
 
