@@ -64,7 +64,7 @@ export default function RecordBottomSheet({ record, onClose, onUpdate, onDelete 
                 {record.setlist.map((song, i) => (
                   <div key={i} className={styles.setlistItem}>
                     <span className={styles.setlistNum}>{i + 1}</span>
-                    <span className={styles.setlistSong}>{song}</span>
+                    <span className={styles.setlistSong}>{typeof song === 'string' ? song : `${song.title}${song.artist ? ` - ${song.artist}` : ''}`}</span>
                   </div>
                 ))}
               </div>

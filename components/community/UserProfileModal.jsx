@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import styles from './UserProfileModal.module.css';
 import { X, User, MessageCircle, Heart, MapPin, Calendar, Music, Loader } from 'lucide-react';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function UserProfileModal({ user, onClose, onStartChat, isStartingChat }) {
   if (!user) return null;
+
+  const { isDemoMode } = useAuth();
+  const targetUserId = user.id === 'demo_user' ? '00000000-0000-0000-0000-000000000001' : user.id;
 
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState({ recordCount: 0, postCount: 0 });
@@ -24,7 +28,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
           currentUserId = authUser.id;
         }
 
-        if (!currentUserId || user.id === 'demo_user' || currentUserId === 'demo_user') {
+        if (!currentUserId || targetUserId === '00000000-0000-0000-0000-000000000001' || currentUserId === 'demo_user') {
           return;
         }
 
@@ -32,7 +36,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
           .from('follows')
           .select('id')
           .eq('follower_id', currentUserId)
-          .eq('following_id', user.id)
+          .eq('following_id', targetUserId)
           .maybeSingle();
 
         setIsFollowing(!!data);
@@ -60,7 +64,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
         return;
       }
 
-      if (user.id === 'demo_user' || currentUserId === 'demo_user') {
+      if (targetUserId === '00000000-0000-0000-0000-000000000001' || currentUserId === 'demo_user') {
         setIsFollowing(prev => !prev);
         setFollowLoading(false);
         return;
@@ -72,7 +76,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
           .from('follows')
           .delete()
           .eq('follower_id', currentUserId)
-          .eq('following_id', user.id);
+          .eq('following_id', targetUserId);
 
         if (error) throw error;
         setIsFollowing(false);
@@ -82,7 +86,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
           .from('follows')
           .insert([{
             follower_id: currentUserId,
-            following_id: user.id
+            following_id: targetUserId
           }]);
 
         if (error) throw error;
@@ -99,30 +103,42 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
   useEffect(() => {
     const fetchUserData = async () => {
       setLoadingRecords(true);
+      const PERF_TABLE = isDemoMode ? 'demo_performances' : 'performances';
+      const POSTS_TABLE = isDemoMode ? 'demo_posts' : 'posts';
+
       try {
         // 공개 공연 기록 조회
-        const { data: recData, error: recErr } = await supabase
-          .from('performances')
-          .select('id, concert_name, artist, date, venue')
-          .eq('user_id', user.id)
-          .eq('is_public', true)
-          .order('date', { ascending: false })
-          .limit(5);
+        let recQuery = supabase.from(PERF_TABLE).select('*');
+        if (isDemoMode) {
+          recQuery = recQuery.limit(5);
+        } else {
+          recQuery = recQuery.eq('user_id', targetUserId).eq('is_public', true).order('date', { ascending: false }).limit(5);
+        }
 
+        const { data: recData, error: recErr } = await recQuery;
         if (recErr) throw recErr;
-        setRecords(recData || []);
+
+        const formatted = (recData || []).map(r => ({
+          id: r.id,
+          concert_name: r.name || r.concert_name || '알 수 없는 공연',
+          artist: r.artist,
+          date: r.date,
+          venue: r.venue
+        }));
+        setRecords(formatted);
 
         // 통계 (기록 수, 게시글 수)
+        let statsRecQuery = supabase.from(PERF_TABLE).select('id', { count: 'exact', head: true });
+        let statsPostQuery = supabase.from(POSTS_TABLE).select('id', { count: 'exact', head: true });
+
+        if (!isDemoMode) {
+          statsRecQuery = statsRecQuery.eq('user_id', targetUserId).eq('is_public', true);
+          statsPostQuery = statsPostQuery.eq('user_id', targetUserId);
+        }
+
         const [{ count: recCount }, { count: postCount }] = await Promise.all([
-          supabase
-            .from('performances')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id)
-            .eq('is_public', true),
-          supabase
-            .from('posts')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id),
+          statsRecQuery,
+          statsPostQuery
         ]);
         setStats({ recordCount: recCount || 0, postCount: postCount || 0 });
       } catch (err) {
@@ -133,7 +149,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
     };
 
     fetchUserData();
-  }, [user.id]);
+  }, [targetUserId, isDemoMode]);
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>

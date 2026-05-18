@@ -39,7 +39,7 @@ export default function RecordList({ records, onSelectRecord }) {
               {record.setlist && record.setlist.length > 0 && (
                 <div className={styles.setlistPreview}>
                   {record.setlist.slice(0, 2).map((song, i) => (
-                    <span key={i} className={styles.songChip}>{song}</span>
+                    <span key={i} className={styles.songChip}>{typeof song === 'string' ? song : song.title}</span>
                   ))}
                   {record.setlist.length > 2 && (
                     <span className={styles.songMore}>+{record.setlist.length - 2}</span>
