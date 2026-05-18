@@ -5,10 +5,14 @@ import { X, Search, MapPin, Music, MessageCircle, User, Calendar, ExternalLink }
 import styles from './SearchModal.module.css';
 import { useUnifiedSearch } from '@/lib/hooks/useUnifiedSearch';
 import { useRecords } from '@/lib/hooks/useRecords';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/hooks/useAuth';
 
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
   const { setFocusedRecord } = useRecords();
+  const { user } = useAuth();
+  const router = useRouter();
   const inputRef = useRef(null);
 
   // Auto focus input when modal opens
@@ -41,8 +45,13 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
     onClose();
   };
 
-  const handleProfileClick = () => {
-    onNavigate('profile');
+  const handleProfileClick = (selectedUser) => {
+    if (!selectedUser) return;
+    if (user && selectedUser.id === user.id) {
+      router.push('/profile/settings');
+    } else {
+      router.push(`/profile/${selectedUser.id}`);
+    }
     onClose();
   };
 
@@ -244,7 +253,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                   </div>
                   <div className={styles.sectionGrid}>
                     {results.users.slice(0, 3).map((u) => (
-                      <div key={u.id} className={styles.resultCard} onClick={handleProfileClick}>
+                      <div key={u.id} className={styles.resultCard} onClick={() => handleProfileClick(u)}>
                         <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
                         <div className={styles.cardInfo}>
                           <h4 className={styles.cardTitle}>{u.nickname}</h4>

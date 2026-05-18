@@ -24,8 +24,8 @@ const TABS = [
   { id: 'profile', label: '프로필', icon: User },
 ];
 
-export default function MainLayout() {
-  const [activeTab, setActiveTab] = useState('records');
+export default function MainLayout({ initialTab = 'records', initialSection = 'profile' }) {
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { addRecord } = useRecords();
@@ -48,7 +48,7 @@ export default function MainLayout() {
       case 'records': return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
       case 'concerts': return <ConcertsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
       case 'community': return <CommunityPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
-      case 'profile': return <ProfilePage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'profile': return <ProfilePage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} initialSection={initialSection} />;
       default: return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
     }
   };
