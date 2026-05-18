@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './PostCard.module.css';
 import { Heart, MessageCircle, Share2, Music, User, ArrowUp, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -13,6 +13,11 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.comments || 0);
+
+  useEffect(() => {
+    setCommentCount(post.comments || 0);
+  }, [post.comments]);
 
   const [commentsList, setCommentsList] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -74,6 +79,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
       if (error) throw error;
       setCommentInput('');
       setCommentsList(prev => [...prev, newComment]);
+      setCommentCount(prev => prev + 1);
       post.comments = (post.comments || 0) + 1;
     } catch (err) {
       console.error('댓글 등록 실패:', err.message);
@@ -182,7 +188,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
           onClick={handleToggleComments}
         >
           <MessageCircle size={18} color={showComments ? '#0054CB' : '#667085'} />
-          <span>{post.comments}</span>
+          <span>{commentCount}</span>
         </button>
         <button className={styles.actionBtn} onClick={handleShare}>
           <Share2 size={18} color="#667085" />
