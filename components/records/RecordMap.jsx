@@ -10,40 +10,50 @@ export default function RecordMap({ records, onSelectRecord }) {
   const mapInstanceRef = useRef(null);
   const overlaysRef = useRef([]);
   const activeInfoWindowRef = useRef(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
   // Initialize Kakao Map
   useEffect(() => {
     if (!mapRef.current) return;
 
     const initMap = () => {
-      // Default center: Seoul City Hall
-      const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
-      const options = {
-        center: initialCenter,
-        level: 5
-      };
-
-      const map = new window.kakao.maps.Map(mapRef.current, options);
-      mapInstanceRef.current = map;
-
-      // Adjust map center if records are available
-      if (records.length > 0) {
-        const validRecords = records.filter(r => r.lat && r.lng);
-        if (validRecords.length > 0) {
-          const firstRecord = validRecords[0];
-          map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
-        }
+      if (!window.kakao || !window.kakao.maps) {
+        console.error('카카오맵 SDK가 로드되지 않았습니다.');
+        return;
       }
+
+      window.kakao.maps.load(() => {
+        // Default center: Seoul City Hall
+        const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
+        const options = {
+          center: initialCenter,
+          level: 5
+        };
+
+        const map = new window.kakao.maps.Map(mapRef.current, options);
+        mapInstanceRef.current = map;
+        setMapLoaded(true);
+
+        // Adjust map center if records are available
+        if (records.length > 0) {
+          const validRecords = records.filter(r => r.lat && r.lng);
+          if (validRecords.length > 0) {
+            const firstRecord = validRecords[0];
+            map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+          }
+        }
+      });
     };
 
     if (window.kakao && window.kakao.maps) {
-      window.kakao.maps.load(initMap);
+      initMap();
     } else {
-      const script = document.querySelector('script[src*="dapi.kakao.com"]');
+      const script = document.getElementById('kakao-map-sdk');
       if (script) {
-        script.addEventListener('load', () => {
-          window.kakao.maps.load(initMap);
-        });
+        script.addEventListener('load', initMap);
+        return () => {
+          script.removeEventListener('load', initMap);
+        };
       }
     }
   }, []);
@@ -51,7 +61,7 @@ export default function RecordMap({ records, onSelectRecord }) {
   // Update map when records list changes
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !window.kakao || !window.kakao.maps) return;
+    if (!map || !window.kakao || !window.kakao.maps || !mapLoaded) return;
 
     // Clear existing markers/overlays
     overlaysRef.current.forEach(overlay => overlay.setMap(null));
@@ -118,12 +128,12 @@ export default function RecordMap({ records, onSelectRecord }) {
     if (hasCoords && !focusedRecord) {
       map.setBounds(bounds);
     }
-  }, [records, focusedRecord]);
+  }, [records, focusedRecord, mapLoaded]);
 
   // Listen to focusedRecord changes (e.g. from search panel)
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !window.kakao || !window.kakao.maps) return;
+    if (!map || !window.kakao || !window.kakao.maps || !mapLoaded) return;
 
     if (focusedRecord && focusedRecord.lat && focusedRecord.lng) {
       const position = new window.kakao.maps.LatLng(focusedRecord.lat, focusedRecord.lng);
@@ -149,7 +159,7 @@ export default function RecordMap({ records, onSelectRecord }) {
       infowindow.open(map);
       activeInfoWindowRef.current = infowindow;
     }
-  }, [focusedRecord]);
+  }, [focusedRecord, mapLoaded]);
 
   // Statistics
   const currentMonth = new Date().getMonth();
