@@ -1,75 +1,167 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useEffect, useRef } from 'react';
 import styles from './RecordMap.module.css';
 import { useRecords } from '@/lib/hooks/useRecords';
 
-// Leaflet 기본 아이콘 깨짐 방지 (useEffect 내에서 처리 권장)
-const fixLeafletIcon = () => {
-  if (typeof window !== 'undefined') {
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
-  }
-};
-
-// 지도 중심 이동 핸들러 컴포넌트
-function ChangeView({ center, zoom }) {
-  const map = useMap();
-  useEffect(() => {
-    map.setView(center, zoom);
-  }, [center, zoom, map]);
-  return null;
-}
-
 export default function RecordMap({ records, onSelectRecord }) {
   const { focusedRecord } = useRecords();
-  const [center, setCenter] = useState([37.5665, 126.9780]);
-  const [zoom, setZoom] = useState(13);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const overlaysRef = useRef([]);
+  const activeInfoWindowRef = useRef(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
 
+  // Initialize Kakao Map
   useEffect(() => {
-    fixLeafletIcon();
-  }, []);
+    if (!mapRef.current) return;
 
-  // Listen to focusedRecord from unified search
-  useEffect(() => {
-    if (focusedRecord && focusedRecord.lat && focusedRecord.lng) {
-      setCenter([focusedRecord.lat, focusedRecord.lng]);
-      setZoom(15);
-    }
-  }, [focusedRecord]);
+    const initMap = () => {
+      if (!window.kakao || !window.kakao.maps) {
+        console.error('카카오맵 SDK가 로드되지 않았습니다.');
+        return;
+      }
 
-  useEffect(() => {
-    if (records.length > 0 && !focusedRecord) {
-      const validRecords = records.filter(r => r.lat && r.lng);
-      if (validRecords.length > 0) {
-        setCenter([validRecords[0].lat, validRecords[0].lng]);
+      window.kakao.maps.load(() => {
+        // Default center: Seoul City Hall
+        const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
+        const options = {
+          center: initialCenter,
+          level: 5
+        };
+
+        const map = new window.kakao.maps.Map(mapRef.current, options);
+        mapInstanceRef.current = map;
+        setMapLoaded(true);
+
+        // Adjust map center if records are available
+        if (records.length > 0) {
+          const validRecords = records.filter(r => r.lat && r.lng);
+          if (validRecords.length > 0) {
+            const firstRecord = validRecords[0];
+            map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+          }
+        }
+      });
+    };
+
+    if (window.kakao && window.kakao.maps) {
+      initMap();
+    } else {
+      const script = document.getElementById('kakao-map-sdk');
+      if (script) {
+        script.addEventListener('load', initMap);
+        return () => {
+          script.removeEventListener('load', initMap);
+        };
       }
     }
-  }, [records, focusedRecord]);
+  }, []);
 
-  // 커스텀 마커 아이콘 생성 함수
-  const createCustomIcon = (emotion) => {
-    return L.divIcon({
-      className: 'plin-leaflet-marker',
-      html: `
+  // Update map when records list changes
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.kakao || !window.kakao.maps || !mapLoaded) return;
+
+    // Clear existing markers/overlays
+    overlaysRef.current.forEach(overlay => overlay.setMap(null));
+    overlaysRef.current = [];
+    if (activeInfoWindowRef.current) {
+      activeInfoWindowRef.current.close();
+      activeInfoWindowRef.current = null;
+    }
+
+    // Set new markers
+    const validRecords = records.filter(r => r.lat && r.lng);
+    const bounds = new window.kakao.maps.LatLngBounds();
+    let hasCoords = false;
+
+    validRecords.forEach(record => {
+      const position = new window.kakao.maps.LatLng(record.lat, record.lng);
+      bounds.extend(position);
+      hasCoords = true;
+
+      // Create Custom Overlay for the emotional pin
+      const markerContent = document.createElement('div');
+      markerContent.className = 'plin-kakao-marker';
+      markerContent.style.cursor = 'pointer';
+      markerContent.innerHTML = `
         <div class="plin-marker-inner">
-          <span>${emotion || '🎵'}</span>
+          <span>${record.emotion || '🎵'}</span>
           <div class="plin-marker-pulse"></div>
         </div>
-      `,
-      iconSize: [40, 40],
-      iconAnchor: [20, 40],
-    });
-  };
+      `;
 
-  // 이번 달 기록 개수 계산
+      const customOverlay = new window.kakao.maps.CustomOverlay({
+        position: position,
+        content: markerContent,
+        yAnchor: 1.0
+      });
+
+      customOverlay.setMap(map);
+      overlaysRef.current.push(customOverlay);
+
+      // Create InfoWindow for clicked display
+      const infowindow = new window.kakao.maps.InfoWindow({
+        position: position,
+        content: `
+          <div class="${styles.popupContent}" style="padding: 10px; min-width: 140px; font-family: sans-serif; display: flex; flex-direction: column; gap: 4px;">
+            <strong style="font-size: 14px; color: #101828; font-weight: 700; display: block; margin: 0;">${record.concertName}</strong>
+            <span style="font-size: 12px; color: #667085; display: block; margin: 0;">${record.date}</span>
+          </div>
+        `,
+        removable: true
+      });
+
+      // Handle marker click
+      markerContent.addEventListener('click', () => {
+        if (activeInfoWindowRef.current) {
+          activeInfoWindowRef.current.close();
+        }
+        infowindow.open(map);
+        activeInfoWindowRef.current = infowindow;
+        onSelectRecord(record);
+      });
+    });
+
+    // Auto fit bounds if not focused on a specific record and we have markers
+    if (hasCoords && !focusedRecord) {
+      map.setBounds(bounds);
+    }
+  }, [records, focusedRecord, mapLoaded]);
+
+  // Listen to focusedRecord changes (e.g. from search panel)
+  useEffect(() => {
+    const map = mapInstanceRef.current;
+    if (!map || !window.kakao || !window.kakao.maps || !mapLoaded) return;
+
+    if (focusedRecord && focusedRecord.lat && focusedRecord.lng) {
+      const position = new window.kakao.maps.LatLng(focusedRecord.lat, focusedRecord.lng);
+      map.setCenter(position);
+      map.setLevel(3); // Zoom in on focused record
+
+      // Also trigger popup open for the focused record
+      if (activeInfoWindowRef.current) {
+        activeInfoWindowRef.current.close();
+      }
+
+      const infowindow = new window.kakao.maps.InfoWindow({
+        position: position,
+        content: `
+          <div class="${styles.popupContent}" style="padding: 10px; min-width: 140px; font-family: sans-serif; display: flex; flex-direction: column; gap: 4px;">
+            <strong style="font-size: 14px; color: #101828; font-weight: 700; display: block; margin: 0;">${focusedRecord.concertName}</strong>
+            <span style="font-size: 12px; color: #667085; display: block; margin: 0;">${focusedRecord.date}</span>
+          </div>
+        `,
+        removable: true
+      });
+
+      infowindow.open(map);
+      activeInfoWindowRef.current = infowindow;
+    }
+  }, [focusedRecord, mapLoaded]);
+
+  // Statistics
   const currentMonth = new Date().getMonth();
   const currentYear = new Date().getFullYear();
   const monthlyRecords = records.filter(r => {
@@ -79,40 +171,7 @@ export default function RecordMap({ records, onSelectRecord }) {
 
   return (
     <div className={styles.mapWrapper}>
-      <MapContainer 
-        center={center} 
-        zoom={zoom} 
-        className={styles.map}
-        zoomControl={true}
-      >
-        <ChangeView center={center} zoom={zoom} />
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
-        
-        {records.map((record) => {
-          if (!record.lat || !record.lng) return null;
-          
-          return (
-            <Marker 
-              key={record.id} 
-              position={[record.lat, record.lng]}
-              icon={createCustomIcon(record.emotion)}
-              eventHandlers={{
-                click: () => onSelectRecord(record),
-              }}
-            >
-              <Popup>
-                <div className={styles.popupContent}>
-                  <strong>{record.concertName}</strong>
-                  <span>{record.date}</span>
-                </div>
-              </Popup>
-            </Marker>
-          );
-        })}
-      </MapContainer>
+      <div ref={mapRef} className={styles.map} />
 
       {/* Overlays */}
       <div className={styles.mapOverlayTop}>
@@ -126,50 +185,6 @@ export default function RecordMap({ records, onSelectRecord }) {
           이번 달 기록 <strong>{monthlyRecords.length}개</strong>
         </div>
       </div>
-
-      <style jsx global>{`
-        .plin-leaflet-marker {
-          background: none;
-          border: none;
-        }
-        .plin-marker-inner {
-          position: relative;
-          width: 40px; height: 40px;
-          background: linear-gradient(135deg, #0054CB, #3B82F6);
-          border-radius: 50% 50% 50% 0;
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 12px rgba(0,84,203,0.3);
-        }
-        .plin-marker-inner span {
-          transform: rotate(45deg);
-          font-size: 18px;
-        }
-        .plin-marker-pulse {
-          position: absolute;
-          top: 0; left: 0;
-          width: 100%; height: 100%;
-          background: rgba(0,84,203,0.2);
-          border-radius: 50%;
-          animation: markerPulse 2s ease-out infinite;
-          z-index: -1;
-        }
-        @keyframes markerPulse {
-          0% { transform: scale(1); opacity: 0.6; }
-          100% { transform: scale(2.5); opacity: 0; }
-        }
-        .leaflet-popup-content-wrapper {
-          border-radius: 12px;
-          padding: 0;
-          overflow: hidden;
-        }
-        .leaflet-popup-content {
-          margin: 12px;
-          min-width: 120px;
-        }
-      `}</style>
     </div>
   );
 }
