@@ -7,20 +7,36 @@ import styles from './AddRecordModal.module.css';
 export default function MapSelectModal({ initialLocation, onConfirm, onClose }) {
   const [tempLocation, setTempLocation] = useState(initialLocation || null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
 
   useEffect(() => {
-    if (!mapRef.current) return;
+    let retryCount = 0;
+    const maxRetry = 50;
 
-    const initMap = () => {
+    const tryInit = () => {
+      if (!containerRef.current) {
+        console.warn('[MapSelectModal] containerRef가 없습니다.');
+        return;
+      }
+
       if (!window.kakao || !window.kakao.maps) {
-        console.error('카카오맵 SDK가 로드되지 않았습니다.');
+        retryCount++;
+        if (retryCount < maxRetry) {
+          setTimeout(tryInit, 200);
+        } else {
+          console.error('[MapSelectModal] 카카오맵 SDK 로드 실패: 최대 재시도 횟수 초과');
+        }
         return;
       }
 
       window.kakao.maps.load(() => {
+        if (!containerRef.current) return;
+
+        console.log('[MapSelectModal] 지도 초기화 시작');
+        console.log('[MapSelectModal] 컨테이너 크기:', containerRef.current.offsetWidth, containerRef.current.offsetHeight);
+
         // Set initial center
         const centerLat = tempLocation ? tempLocation.lat : 37.5665;
         const centerLng = tempLocation ? tempLocation.lng : 126.9780;
@@ -31,8 +47,17 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
           level: 4
         };
 
-        const map = new window.kakao.maps.Map(mapRef.current, options);
+        const map = new window.kakao.maps.Map(containerRef.current, options);
         mapInstanceRef.current = map;
+
+        console.log('[MapSelectModal] 지도 생성 완료');
+
+        // 지도 크기 강제 재조정
+        setTimeout(() => {
+          map.relayout();
+          map.setCenter(centerPosition);
+          console.log('[MapSelectModal] relayout 완료');
+        }, 300);
 
         // Create Geocoder
         const geocoder = new window.kakao.maps.services.Geocoder();
@@ -80,17 +105,7 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
       });
     };
 
-    if (window.kakao && window.kakao.maps) {
-      initMap();
-    } else {
-      const script = document.getElementById('kakao-map-sdk');
-      if (script) {
-        script.addEventListener('load', initMap);
-        return () => {
-          script.removeEventListener('load', initMap);
-        };
-      }
-    }
+    tryInit();
   }, []);
 
   return (
@@ -104,7 +119,16 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
         </div>
         
         <div className={styles.mapContainerArea}>
-          <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+          <div 
+            ref={containerRef} 
+            id="kakao-map-container-select"
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              display: 'block',
+              background: '#e0e0e0' 
+            }} 
+          />
         </div>
 
         <div className={styles.mapModalFooter}>
