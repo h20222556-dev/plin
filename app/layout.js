@@ -1,5 +1,6 @@
 import './globals.css';
 import ConnectionWatcher from '@/components/ui/ConnectionWatcher';
+import Script from 'next/script';
 
 export const metadata = {
   title: 'PLIN — 공연 기록 & 팬 커뮤니티',
@@ -13,6 +14,10 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
         <meta name="theme-color" content="#ffffff" />
+        <Script
+          src={`//dapi.kakao.com/v2/maps/sdk.js?appkey=${process.env.NEXT_PUBLIC_KAKAO_MAP_KEY}&autoload=false&libraries=services`}
+          strategy="beforeInteractive"
+        />
       </head>
       <body>
         <ConnectionWatcher />

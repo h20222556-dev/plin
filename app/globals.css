@@ -451,8 +451,8 @@ input, textarea, select {
 .overflow-hidden { overflow: hidden; }
 
 
-/* Leaflet Marker Styles */
-.plin-leaflet-marker {
+/* Kakao Map Marker Styles */
+.plin-kakao-marker {
   background: none;
   border: none;
 }
@@ -484,13 +484,4 @@ input, textarea, select {
 @keyframes markerPulse {
   0% { transform: scale(1); opacity: 0.6; }
   100% { transform: scale(2.5); opacity: 0; }
-}
-.leaflet-popup-content-wrapper {
-  border-radius: 12px !important;
-  padding: 0 !important;
-  overflow: hidden;
-}
-.leaflet-popup-content {
-  margin: 12px !important;
-  min-width: 120px;
 }

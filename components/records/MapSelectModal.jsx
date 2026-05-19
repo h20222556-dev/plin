@@ -1,80 +1,106 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import styles from './AddRecordModal.module.css';
-
-// Leaflet 기본 아이콘 깨짐 방지
-const fixLeafletIcon = () => {
-  if (typeof window !== 'undefined') {
-    delete L.Icon.Default.prototype._getIconUrl;
-    L.Icon.Default.mergeOptions({
-      iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-      iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-      shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-    });
-  }
-};
-
-// 지도 클릭 이벤트 처리 컴포넌트
-function MapClickHandler({ onClick }) {
-  useMapEvents({
-    click: (e) => {
-      onClick(e.latlng.lat, e.latlng.lng);
-    },
-  });
-  return null;
-}
 
 export default function MapSelectModal({ initialLocation, onConfirm, onClose }) {
   const [tempLocation, setTempLocation] = useState(initialLocation || null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const markerRef = useRef(null);
 
   useEffect(() => {
-    fixLeafletIcon();
-  }, []);
+    if (!mapRef.current) return;
 
-  const handleMapClick = async (lat, lng) => {
-    setIsGeocoding(true);
-    setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
-    
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&accept-language=ko`);
-      const data = await res.json();
-      if (data && data.display_name) {
-        setTempLocation({ lat, lng, address: data.display_name });
-      } else {
-        setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+    const initMap = () => {
+      // Set initial center
+      const centerLat = tempLocation ? tempLocation.lat : 37.5665;
+      const centerLng = tempLocation ? tempLocation.lng : 126.9780;
+      const centerPosition = new window.kakao.maps.LatLng(centerLat, centerLng);
+
+      const options = {
+        center: centerPosition,
+        level: 4
+      };
+
+      const map = new window.kakao.maps.Map(mapRef.current, options);
+      mapInstanceRef.current = map;
+
+      // Create Geocoder
+      const geocoder = new window.kakao.maps.services.Geocoder();
+
+      // If initial location exists, place a marker
+      if (tempLocation) {
+        const marker = new window.kakao.maps.Marker({
+          position: centerPosition,
+          map: map
+        });
+        markerRef.current = marker;
       }
-    } catch (err) {
-      console.warn('Reverse geocoding failed:', err);
-      setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-    } finally {
-      setIsGeocoding(false);
+
+      // Map Click Event
+      window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+        const latlng = mouseEvent.latLng;
+        const lat = latlng.getLat();
+        const lng = latlng.getLng();
+
+        setIsGeocoding(true);
+        setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
+
+        // Reverse Geocoding using Kakao services
+        geocoder.coord2Address(lng, lat, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK) {
+            const address = result[0].address.address_name;
+            setTempLocation({ lat, lng, address });
+          } else {
+            setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+          }
+          setIsGeocoding(false);
+        });
+
+        // Update Marker position
+        if (markerRef.current) {
+          markerRef.current.setPosition(latlng);
+        } else {
+          const marker = new window.kakao.maps.Marker({
+            position: latlng,
+            map: map
+          });
+          markerRef.current = marker;
+        }
+      });
+    };
+
+    if (window.kakao && window.kakao.maps) {
+      window.kakao.maps.load(initMap);
+    } else {
+      const script = document.querySelector('script[src*="dapi.kakao.com"]');
+      if (script) {
+        const handleLoad = () => {
+          window.kakao.maps.load(initMap);
+        };
+        script.addEventListener('load', handleLoad);
+        return () => {
+          script.removeEventListener('load', handleLoad);
+        };
+      }
     }
-  };
+  }, []);
 
   return (
     <div className={styles.mapModalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={styles.mapModalContainer}>
         <div className={styles.mapModalHeader}>
           <h3>장소 선택</h3>
-          <button type="button" onClick={onClose}><X size={20} color="#101828" /></button>
+          <button type="button" onClick={onClose}>
+            <X size={20} color="#101828" />
+          </button>
         </div>
         
         <div className={styles.mapContainerArea}>
-          <MapContainer 
-            center={tempLocation ? [tempLocation.lat, tempLocation.lng] : [37.5665, 126.9780]} 
-            zoom={15} 
-            style={{ width: '100%', height: '100%' }}
-          >
-            <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-            <MapClickHandler onClick={handleMapClick} />
-            {tempLocation && <Marker position={[tempLocation.lat, tempLocation.lng]} />}
-          </MapContainer>
+          <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
         </div>
 
         <div className={styles.mapModalFooter}>
