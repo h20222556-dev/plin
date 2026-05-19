@@ -10,103 +10,115 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
   const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
+  const [isLoaded, setIsLoaded] = useState(false);
 
+  // SDK 스크립트 동적 삽입
   useEffect(() => {
-    let retryCount = 0;
-    const maxRetry = 50;
-
-    const tryInit = () => {
-      if (!containerRef.current) {
-        console.warn('[MapSelectModal] containerRef가 없습니다.');
-        return;
-      }
-
-      if (!window.kakao || !window.kakao.maps) {
-        retryCount++;
-        if (retryCount < maxRetry) {
-          setTimeout(tryInit, 200);
-        } else {
-          console.error('[MapSelectModal] 카카오맵 SDK 로드 실패: 최대 재시도 횟수 초과');
-        }
-        return;
-      }
-
-      window.kakao.maps.load(() => {
-        if (!containerRef.current) return;
-
-        console.log('[MapSelectModal] 지도 초기화 시작');
-        console.log('[MapSelectModal] 컨테이너 크기:', containerRef.current.offsetWidth, containerRef.current.offsetHeight);
-
-        // Set initial center
-        const centerLat = tempLocation ? tempLocation.lat : 37.5665;
-        const centerLng = tempLocation ? tempLocation.lng : 126.9780;
-        const centerPosition = new window.kakao.maps.LatLng(centerLat, centerLng);
-
-        const options = {
-          center: centerPosition,
-          level: 4
+    const KAKAO_APP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+    if (document.getElementById('kakao-map-sdk')) {
+      if (window.kakao && window.kakao.maps) {
+        setIsLoaded(true);
+      } else {
+        const handleLoad = () => setIsLoaded(true);
+        const script = document.getElementById('kakao-map-sdk');
+        script.addEventListener('load', handleLoad);
+        return () => {
+          script.removeEventListener('load', handleLoad);
         };
+      }
+      return;
+    }
 
-        const map = new window.kakao.maps.Map(containerRef.current, options);
-        mapInstanceRef.current = map;
+    const script = document.createElement('script');
+    script.id = 'kakao-map-sdk';
+    script.src = `//dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_APP_KEY}&autoload=false&libraries=services`;
+    script.async = true;
+    script.onload = () => setIsLoaded(true);
+    script.onerror = () => console.error('[MapSelectModal] SDK 로드 실패. appkey와 도메인 설정을 확인하세요.');
+    document.head.appendChild(script);
+  }, []);
 
-        console.log('[MapSelectModal] 지도 생성 완료');
+  // 지도 초기화
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!containerRef.current) {
+      console.warn('[MapSelectModal] containerRef가 없습니다.');
+      return;
+    }
 
-        // 지도 크기 강제 재조정
-        setTimeout(() => {
-          map.relayout();
-          map.setCenter(centerPosition);
-          console.log('[MapSelectModal] relayout 완료');
-        }, 300);
+    window.kakao.maps.load(() => {
+      if (!containerRef.current) return;
 
-        // Create Geocoder
-        const geocoder = new window.kakao.maps.services.Geocoder();
+      console.log('[MapSelectModal] 지도 초기화 시작');
+      console.log('[MapSelectModal] 컨테이너 크기:', containerRef.current.offsetWidth, containerRef.current.offsetHeight);
 
-        // If initial location exists, place a marker
-        if (tempLocation) {
+      // Set initial center
+      const centerLat = tempLocation ? tempLocation.lat : 37.5665;
+      const centerLng = tempLocation ? tempLocation.lng : 126.9780;
+      const centerPosition = new window.kakao.maps.LatLng(centerLat, centerLng);
+
+      const options = {
+        center: centerPosition,
+        level: 4
+      };
+
+      const map = new window.kakao.maps.Map(containerRef.current, options);
+      mapInstanceRef.current = map;
+
+      console.log('[MapSelectModal] 지도 생성 완료');
+
+      // 지도 크기 강제 재조정
+      setTimeout(() => {
+        map.relayout();
+        map.setCenter(centerPosition);
+        console.log('[MapSelectModal] relayout 완료');
+      }, 100);
+
+      // Create Geocoder
+      const geocoder = new window.kakao.maps.services.Geocoder();
+
+      // If initial location exists, place a marker
+      if (tempLocation) {
+        const marker = new window.kakao.maps.Marker({
+          position: centerPosition,
+          map: map
+        });
+        markerRef.current = marker;
+      }
+
+      // Map Click Event
+      window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+        const latlng = mouseEvent.latLng;
+        const lat = latlng.getLat();
+        const lng = latlng.getLng();
+
+        setIsGeocoding(true);
+        setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
+
+        // Reverse Geocoding using Kakao services
+        geocoder.coord2Address(lng, lat, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK) {
+            const address = result[0].address.address_name;
+            setTempLocation({ lat, lng, address });
+          } else {
+            setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+          }
+          setIsGeocoding(false);
+        });
+
+        // Update Marker position
+        if (markerRef.current) {
+          markerRef.current.setPosition(latlng);
+        } else {
           const marker = new window.kakao.maps.Marker({
-            position: centerPosition,
+            position: latlng,
             map: map
           });
           markerRef.current = marker;
         }
-
-        // Map Click Event
-        window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
-          const latlng = mouseEvent.latLng;
-          const lat = latlng.getLat();
-          const lng = latlng.getLng();
-
-          setIsGeocoding(true);
-          setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
-
-          // Reverse Geocoding using Kakao services
-          geocoder.coord2Address(lng, lat, (result, status) => {
-            if (status === window.kakao.maps.services.Status.OK) {
-              const address = result[0].address.address_name;
-              setTempLocation({ lat, lng, address });
-            } else {
-              setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-            }
-            setIsGeocoding(false);
-          });
-
-          // Update Marker position
-          if (markerRef.current) {
-            markerRef.current.setPosition(latlng);
-          } else {
-            const marker = new window.kakao.maps.Marker({
-              position: latlng,
-              map: map
-            });
-            markerRef.current = marker;
-          }
-        });
       });
-    };
-
-    tryInit();
-  }, []);
+    });
+  }, [isLoaded]);
 
   return (
     <div className={styles.mapModalOverlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
