@@ -30,6 +30,19 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { addRecord } = useRecords();
   const { user } = useAuth();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tabParam = params.get('tab');
+      if (tabParam) {
+        setActiveTab(tabParam);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (sessionStorage.getItem('pendingChatRoom')) {
+        setActiveTab('community');
+      }
+    }
+  }, []);
   const handleSaveRecord = async (form) => {
     try {
       console.log('MainLayout starting save:', form);

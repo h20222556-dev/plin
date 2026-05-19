@@ -8,18 +8,54 @@ import styles from './ProfilePage.module.css';
 import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight } from 'lucide-react';
 
 export default function ProfilePage({ initialSection = 'profile' }) {
-  const { user, logout, updateProfile } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user ?? null;
+  const logout = auth?.logout ?? (() => {});
+  const updateProfile = auth?.updateProfile ?? (() => {});
   const { records } = useRecords();
   const [activeSection, setActiveSection] = useState(initialSection); // profile | settings
   const [editMode, setEditMode] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || '');
-  const [isPublic, setIsPublic] = useState(user?.is_public ?? true);
+  const [isPublic, setIsPublic] = useState(false);
   
   // Detailed privacy settings
-  const [showRecords, setShowRecords] = useState(true);
-  const [showPosts, setShowPosts] = useState(true);
-  const [showFollowers, setShowFollowers] = useState(true);
+  const [showRecords, setShowRecords] = useState(false);
+  const [showPosts, setShowPosts] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
+
+  // Sync nickname only, since it is edited via a different save button
+  useEffect(() => {
+    if (user) {
+      setNickname(user.nickname || '');
+    }
+  }, [user?.nickname]);
+
+  // Load privacy settings from Supabase on mount/user ID change
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadPrivacySettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('is_public, show_records, show_posts, show_followers')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setIsPublic(data.is_public ?? true);
+          setShowRecords(data.show_records ?? true);
+          setShowPosts(data.show_posts ?? true);
+          setShowFollowers(data.show_followers ?? true);
+        }
+      } catch (err) {
+        console.error('Failed to load privacy settings:', err);
+      }
+    };
+
+    loadPrivacySettings();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -37,6 +73,71 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   }, [user?.id]);
 
   const publicRecords = records.filter(r => r.isPublic);
+
+  const savePrivacySettings = async (settings) => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          is_public: settings.isPublic,
+          show_records: settings.showRecords,
+          show_posts: settings.showPosts,
+          show_followers: settings.showFollowers
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Also update auth context so other components stay in sync immediately
+      if (auth?.updateProfile) {
+        auth.updateProfile({
+          isPublic: settings.isPublic,
+          showRecords: settings.showRecords,
+          showPosts: settings.showPosts,
+          showFollowers: settings.showFollowers
+        });
+      }
+    } catch (err) {
+      console.error('Error saving privacy settings:', err);
+    }
+  };
+
+  const handlePrivacyChange = async (key, newValue) => {
+    let nextIsPublic = isPublic;
+    let nextShowRecords = showRecords;
+    let nextShowPosts = showPosts;
+    let nextShowFollowers = showFollowers;
+
+    if (key === 'isPublic') {
+      nextIsPublic = newValue;
+      nextShowRecords = newValue;
+      nextShowPosts = newValue;
+      nextShowFollowers = newValue;
+    } else {
+      if (key === 'showRecords') nextShowRecords = newValue;
+      if (key === 'showPosts') nextShowPosts = newValue;
+      if (key === 'showFollowers') nextShowFollowers = newValue;
+
+      if (nextShowRecords || nextShowPosts || nextShowFollowers) {
+        nextIsPublic = true;
+      } else {
+        nextIsPublic = false;
+      }
+    }
+
+    setIsPublic(nextIsPublic);
+    setShowRecords(nextShowRecords);
+    setShowPosts(nextShowPosts);
+    setShowFollowers(nextShowFollowers);
+
+    await savePrivacySettings({
+      isPublic: nextIsPublic,
+      showRecords: nextShowRecords,
+      showPosts: nextShowPosts,
+      showFollowers: nextShowFollowers
+    });
+  };
 
   const handleSave = () => {
     updateProfile({ nickname, isPublic });
@@ -232,16 +333,16 @@ export default function ProfilePage({ initialSection = 'profile' }) {
               <div className={styles.settingsGroup}>
                 <p className={styles.groupLabel}>개인정보 및 공개 설정</p>
                 <div className={styles.settingItem}>
-                  {user?.is_public ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
+                  {isPublic ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
                   <div className={styles.settingInfo}>
                     <p className={styles.settingTitle}>계정 전체 공개</p>
-                    <p className={styles.settingValue}>{user?.is_public ? '공개 계정' : '비공개 계정'}</p>
+                    <p className={styles.settingValue}>{isPublic ? '공개 계정' : '비공개 계정'}</p>
                   </div>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={user?.is_public ?? true}
-                      onChange={() => updateProfile({ isPublic: !user?.is_public })}
+                      checked={isPublic}
+                      onChange={(e) => handlePrivacyChange('isPublic', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -255,7 +356,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showRecords}
-                      onChange={(e) => setShowRecords(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showRecords', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -269,7 +370,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showPosts}
-                      onChange={(e) => setShowPosts(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showPosts', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -283,7 +384,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showFollowers}
-                      onChange={(e) => setShowFollowers(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showFollowers', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>

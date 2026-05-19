@@ -1,6 +1,7 @@
 import './globals.css';
 import ConnectionWatcher from '@/components/ui/ConnectionWatcher';
 import Script from 'next/script';
+import { AuthProvider } from '@/lib/hooks/useAuth';
 
 export const metadata = {
   title: 'PLIN — 공연 기록 & 팬 커뮤니티',
@@ -16,10 +17,12 @@ export default function RootLayout({ children }) {
         <meta name="theme-color" content="#ffffff" />
       </head>
       <body>
-        <ConnectionWatcher />
-        <div className="app-shell">
-          {children}
-        </div>
+        <AuthProvider>
+          <ConnectionWatcher />
+          <div className="app-shell">
+            {children}
+          </div>
+        </AuthProvider>
       </body>
     </html>
   );

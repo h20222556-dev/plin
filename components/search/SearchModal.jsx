@@ -299,11 +299,26 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                   </div>
                   <div className={styles.sectionGrid}>
                     {results.users.slice(0, 3).map((u) => (
-                      <div key={u.id} className={styles.resultCard} onClick={() => handleSearchUserClick(u)}>
+                      <div
+                        key={u.id}
+                        className={styles.resultCard}
+                        onClick={() => {
+                          router.push(`/profile/${u.id}`);
+                          onClose();
+                        }}
+                      >
                         <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
                         <div className={styles.cardInfo}>
-                          <h4 className={styles.cardTitle}>{u.nickname}</h4>
-                          <p className={styles.cardSubtitle}>PLIN 회원</p>
+                          <h4 className={styles.cardTitle}>
+                            {u.nickname}
+                            {!u.isPublic && <span className={styles.privateBadge}>비공개</span>}
+                          </h4>
+                          <p className={styles.cardSubtitle}>
+                            {u.isPublic 
+                              ? `${u.showRecords ? `관람 기록 ${u.recordsCount}` : '기록 비공개'} · ${u.showPosts ? `작성글 ${u.postsCount}` : '작성글 비공개'}`
+                              : '비공개 계정'
+                            }
+                          </p>
                         </div>
                       </div>
                     ))}
