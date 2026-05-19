@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import styles from './PostCard.module.css';
 import { Heart, MessageCircle, Share2, Music, User, ArrowUp, Trash2 } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
@@ -8,11 +8,20 @@ import { supabase } from '@/lib/supabase';
 
 export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
   const { user, isDemoMode } = useAuth();
+  const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
   const authorId = post.author?.id;
   const isAuthor = user && user.id === authorId;
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [commentCount, setCommentCount] = useState(post.comments || 0);
+
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editingContent, setEditingContent] = useState('');
+
+  useEffect(() => {
+    setCommentCount(post.comments || 0);
+  }, [post.comments]);
 
   const [commentsList, setCommentsList] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
@@ -48,7 +57,6 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
 
   const handleAddComment = async () => {
     if (!commentInput.trim()) return;
-    const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
     if (!currentUserId) {
       alert('로그인이 필요합니다.');
       return;
@@ -74,10 +82,75 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
       if (error) throw error;
       setCommentInput('');
       setCommentsList(prev => [...prev, newComment]);
+      setCommentCount(prev => prev + 1);
       post.comments = (post.comments || 0) + 1;
     } catch (err) {
       console.error('댓글 등록 실패:', err.message);
       alert('댓글 등록에 실패했습니다.');
+    }
+  };
+
+  const handleStartEdit = (comment) => {
+    setEditingCommentId(comment.id);
+    setEditingContent(comment.content);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCommentId(null);
+    setEditingContent('');
+  };
+
+  const handleSaveEdit = async (commentId) => {
+    if (!editingContent.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from(COMMENTS_TABLE)
+        .update({
+          content: editingContent.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      setCommentsList(prev =>
+        prev.map(c =>
+          c.id === commentId
+            ? { ...c, content: editingContent.trim() }
+            : c
+        )
+      );
+
+      setEditingCommentId(null);
+      setEditingContent('');
+    } catch (err) {
+      console.error('댓글 수정 실패:', err.message);
+      alert('댓글 수정에 실패했습니다.');
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    const confirmed = window.confirm('댓글을 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from(COMMENTS_TABLE)
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      // 댓글 목록에서 즉시 제거
+      setCommentsList(prev => prev.filter(c => c.id !== commentId));
+
+      // 게시글 댓글 수 즉시 감소
+      setCommentCount(prev => Math.max(prev - 1, 0));
+      post.comments = Math.max((post.comments || 1) - 1, 0);
+    } catch (err) {
+      console.error('댓글 삭제 실패:', err.message);
+      alert('댓글 삭제에 실패했습니다.');
     }
   };
 
@@ -182,7 +255,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
           onClick={handleToggleComments}
         >
           <MessageCircle size={18} color={showComments ? '#0054CB' : '#667085'} />
-          <span>{post.comments}</span>
+          <span>{commentCount}</span>
         </button>
         <button className={styles.actionBtn} onClick={handleShare}>
           <Share2 size={18} color="#667085" />
@@ -237,9 +310,54 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
                 return (
                   <div key={c.id} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: '1px solid #F2F4F7', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: 16 }}>{emoji}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                      <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>
-                      <span style={{ fontSize: 13, color: '#475467' }}>{c.content}</span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>
+                        {c.user_id === currentUserId && editingCommentId !== c.id && (
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => handleStartEdit(c)}
+                              style={{ fontSize: 11, color: '#0054CB', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: '500' }}
+                            >
+                              수정
+                            </button>
+                            <button
+                              onClick={() => handleDeleteComment(c.id)}
+                              style={{ fontSize: 11, color: '#F04438', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: '500' }}
+                            >
+                              삭제
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {editingCommentId === c.id ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                          <input
+                            className="input-field"
+                            style={{ fontSize: 13, padding: '6px 8px', borderRadius: '6px', border: '1px solid #D0D5DD', width: '100%', outline: 'none' }}
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            autoFocus
+                          />
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                            <button
+                              onClick={() => handleSaveEdit(c.id)}
+                              style={{ fontSize: 11, padding: '4px 8px', backgroundColor: '#0054CB', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                            >
+                              저장
+                            </button>
+                            <button
+                              onClick={handleCancelEdit}
+                              style={{ fontSize: 11, padding: '4px 8px', backgroundColor: '#F2F4F7', color: '#344054', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: '500' }}
+                            >
+                              취소
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <span style={{ fontSize: 13, color: '#475467', whiteSpace: 'pre-wrap' }}>{c.content}</span>
+                      )}
                     </div>
                   </div>
                 );
