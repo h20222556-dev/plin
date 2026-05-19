@@ -16,10 +16,20 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   const [isPublic, setIsPublic] = useState(user?.is_public ?? true);
   
   // Detailed privacy settings
-  const [showRecords, setShowRecords] = useState(true);
-  const [showPosts, setShowPosts] = useState(true);
-  const [showFollowers, setShowFollowers] = useState(true);
+  const [showRecords, setShowRecords] = useState(user?.show_records ?? true);
+  const [showPosts, setShowPosts] = useState(user?.show_posts ?? true);
+  const [showFollowers, setShowFollowers] = useState(user?.show_followers ?? true);
   const [followerCount, setFollowerCount] = useState(0);
+
+  useEffect(() => {
+    if (user) {
+      setNickname(user.nickname || '');
+      setIsPublic(user.is_public ?? true);
+      setShowRecords(user.show_records ?? true);
+      setShowPosts(user.show_posts ?? true);
+      setShowFollowers(user.show_followers ?? true);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -255,7 +265,10 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showRecords}
-                      onChange={(e) => setShowRecords(e.target.checked)}
+                      onChange={(e) => {
+                        setShowRecords(e.target.checked);
+                        updateProfile({ showRecords: e.target.checked });
+                      }}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -269,7 +282,10 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showPosts}
-                      onChange={(e) => setShowPosts(e.target.checked)}
+                      onChange={(e) => {
+                        setShowPosts(e.target.checked);
+                        updateProfile({ showPosts: e.target.checked });
+                      }}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -283,7 +299,10 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showFollowers}
-                      onChange={(e) => setShowFollowers(e.target.checked)}
+                      onChange={(e) => {
+                        setShowFollowers(e.target.checked);
+                        updateProfile({ showFollowers: e.target.checked });
+                      }}
                     />
                     <span className={styles.slider}></span>
                   </label>

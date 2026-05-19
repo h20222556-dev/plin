@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCommunity } from '@/lib/hooks/useCommunity';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { getOrCreateChatRoom } from '@/lib/hooks/useChat';
@@ -17,8 +18,9 @@ const TABS = [
 ];
 
 export default function CommunityPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('feed');
-const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemoMode } = useCommunity();
+  const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemoMode } = useCommunity();
   const { user } = useAuth();
   const [showNewPost, setShowNewPost] = useState(false);
   const [activeChat, setActiveChat] = useState(null); // { roomId, recipientId, recipientNickname, expiresAt }
@@ -97,7 +99,7 @@ const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemo
                   key={post.id}
                   post={post}
                   onLike={() => toggleLike(post.id, post.likes, post.isLiked)}
-                  onAuthorClick={(author) => setSelectedUser(author)}
+                  onAuthorClick={(author) => router.push(`/profile/${author.id}`)}
                   deletePost={deletePostFn}
                 />
               ))}
