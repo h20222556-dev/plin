@@ -36,6 +36,16 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   }, [user]);
 
   useEffect(() => {
+    if (user) {
+      setNickname(user.nickname || '');
+      setIsPublic(user.is_public ?? true);
+      setShowRecords(user.show_records ?? true);
+      setShowPosts(user.show_posts ?? true);
+      setShowFollowers(user.show_followers ?? true);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (!user) return;
     
     const fetchFollowerCount = async () => {
