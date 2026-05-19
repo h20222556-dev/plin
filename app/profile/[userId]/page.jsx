@@ -192,7 +192,7 @@ export default function UserProfilePage({ params }) {
   const showTabMenu = isOwner || isPublicAccount;
 
   // Mask follower count if restricted
-  const displayFollowerCount = isOwner || profile.show_followers !== false ? followerCount : '팔로워 비공개';
+  const displayFollowerCount = isOwner || profile.show_followers !== false ? followerCount : '비공개';
 
   return (
     <div className={styles.page}>
@@ -226,12 +226,14 @@ export default function UserProfilePage({ params }) {
                 >
                   {isFollowing ? '팔로잉' : '팔로우'}
                 </button>
-                <button
-                  className={styles.chatBtn}
-                  onClick={handleStartChat}
-                >
-                  채팅하기
-                </button>
+                {isPublicAccount && (
+                  <button
+                    className={styles.chatBtn}
+                    onClick={handleStartChat}
+                  >
+                    채팅하기
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -381,7 +383,7 @@ export default function UserProfilePage({ params }) {
                   {!isOwner && profile.show_followers === false ? (
                     <div className={styles.emptyState}>
                       <EyeOff size={24} style={{ margin: '0 auto 8px', color: '#98A2B3' }} />
-                      <p>팔로워 비공개</p>
+                      <p>비공개</p>
                     </div>
                   ) : followers.length === 0 ? (
                     <div className={styles.emptyState}>
