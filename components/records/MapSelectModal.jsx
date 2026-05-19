@@ -23,63 +23,71 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
       }
 
       window.kakao.maps.load(() => {
-        if (!mapRef.current) return;
+        // DOM이 완전히 렌더링된 후 초기화
+        requestAnimationFrame(() => {
+          if (!mapRef.current) return;
 
-        // Set initial center
-        const centerLat = tempLocation ? tempLocation.lat : 37.5665;
-        const centerLng = tempLocation ? tempLocation.lng : 126.9780;
-        const centerPosition = new window.kakao.maps.LatLng(centerLat, centerLng);
+          // Set initial center
+          const centerLat = tempLocation ? tempLocation.lat : 37.5665;
+          const centerLng = tempLocation ? tempLocation.lng : 126.9780;
+          const centerPosition = new window.kakao.maps.LatLng(centerLat, centerLng);
 
-        const options = {
-          center: centerPosition,
-          level: 4
-        };
+          const options = {
+            center: centerPosition,
+            level: 4
+          };
 
-        const map = new window.kakao.maps.Map(mapRef.current, options);
-        mapInstanceRef.current = map;
+          const map = new window.kakao.maps.Map(mapRef.current, options);
+          mapInstanceRef.current = map;
 
-        // Create Geocoder
-        const geocoder = new window.kakao.maps.services.Geocoder();
-
-        // If initial location exists, place a marker
-        if (tempLocation) {
-          const marker = new window.kakao.maps.Marker({
-            position: centerPosition,
-            map: map
-          });
-          markerRef.current = marker;
-        }
-
-        // Map Click Event
-        window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
-          const latlng = mouseEvent.latLng;
-          const lat = latlng.getLat();
-          const lng = latlng.getLng();
-
-          setIsGeocoding(true);
-          setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
-
-          // Reverse Geocoding using Kakao services
-          geocoder.coord2Address(lng, lat, (result, status) => {
-            if (status === window.kakao.maps.services.Status.OK) {
-              const address = result[0].address.address_name;
-              setTempLocation({ lat, lng, address });
-            } else {
-              setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
-            }
-            setIsGeocoding(false);
+          // 지도 크기 재조정 (컨테이너 크기 변경 대응)
+          window.kakao.maps.event.addListener(map, 'tilesloaded', () => {
+            map.relayout();
           });
 
-          // Update Marker position
-          if (markerRef.current) {
-            markerRef.current.setPosition(latlng);
-          } else {
+          // Create Geocoder
+          const geocoder = new window.kakao.maps.services.Geocoder();
+
+          // If initial location exists, place a marker
+          if (tempLocation) {
             const marker = new window.kakao.maps.Marker({
-              position: latlng,
+              position: centerPosition,
               map: map
             });
             markerRef.current = marker;
           }
+
+          // Map Click Event
+          window.kakao.maps.event.addListener(map, 'click', (mouseEvent) => {
+            const latlng = mouseEvent.latLng;
+            const lat = latlng.getLat();
+            const lng = latlng.getLng();
+
+            setIsGeocoding(true);
+            setTempLocation({ lat, lng, address: '주소를 불러오는 중...' });
+
+            // Reverse Geocoding using Kakao services
+            geocoder.coord2Address(lng, lat, (result, status) => {
+              if (status === window.kakao.maps.services.Status.OK) {
+                const address = result[0].address.address_name;
+                setTempLocation({ lat, lng, address });
+              } else {
+                setTempLocation({ lat, lng, address: `${lat.toFixed(4)}, ${lng.toFixed(4)}` });
+              }
+              setIsGeocoding(false);
+            });
+
+            // Update Marker position
+            if (markerRef.current) {
+              markerRef.current.setPosition(latlng);
+            } else {
+              const marker = new window.kakao.maps.Marker({
+                position: latlng,
+                map: map
+              });
+              markerRef.current = marker;
+            }
+          });
         });
       });
     };

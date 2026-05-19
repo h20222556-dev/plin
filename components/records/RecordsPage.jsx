@@ -66,7 +66,11 @@ export default function RecordsPage({ onNavigate }) {
           <div style={{ textAlign: 'center', padding: '100px' }}>불러오는 중...</div>
         ) : (
           <>
-            {view === 'map' && <RecordMap records={records} onSelectRecord={handleRecordSelect} />}
+            {view === 'map' && (
+              <div style={{ width: '100%', height: '500px' }}>
+                <RecordMap records={records} onSelectRecord={handleRecordSelect} />
+              </div>
+            )}
             {view === 'list' && <RecordList records={records} onRecordSelect={handleRecordSelect} />}
             {view === 'calendar' && <RecordCalendar records={records} onRecordSelect={handleRecordSelect} />}
           </>

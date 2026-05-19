@@ -25,27 +25,36 @@ export default function RecordMap({ records, onSelectRecord }) {
       }
 
       window.kakao.maps.load(() => {
-        if (!mapRef.current) return;
+        // DOM이 완전히 렌더링된 후 초기화
+        requestAnimationFrame(() => {
+          if (!mapRef.current) return;
 
-        // Default center: Seoul City Hall
-        const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
-        const options = {
-          center: initialCenter,
-          level: 5
-        };
+          // Default center: Seoul City Hall
+          const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
+          const options = {
+            center: initialCenter,
+            level: 5
+          };
 
-        const map = new window.kakao.maps.Map(mapRef.current, options);
-        mapInstanceRef.current = map;
-        setMapLoaded(true);
+          const map = new window.kakao.maps.Map(mapRef.current, options);
+          mapInstanceRef.current = map;
 
-        // Adjust map center if records are available
-        if (records.length > 0) {
-          const validRecords = records.filter(r => r.lat && r.lng);
-          if (validRecords.length > 0) {
-            const firstRecord = validRecords[0];
-            map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+          // 지도 크기 재조정 (컨테이너 크기 변경 대응)
+          window.kakao.maps.event.addListener(map, 'tilesloaded', () => {
+            map.relayout();
+          });
+
+          setMapLoaded(true);
+
+          // Adjust map center if records are available
+          if (records.length > 0) {
+            const validRecords = records.filter(r => r.lat && r.lng);
+            if (validRecords.length > 0) {
+              const firstRecord = validRecords[0];
+              map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+            }
           }
-        }
+        });
       });
     };
 
@@ -179,7 +188,16 @@ export default function RecordMap({ records, onSelectRecord }) {
 
   return (
     <div className={styles.mapWrapper}>
-      <div ref={mapRef} className={styles.map} />
+      <div
+        ref={mapRef}
+        className={styles.map}
+        style={{
+          width: '100%',
+          height: '500px',  // 명시적 픽셀값으로 지정
+          minHeight: '300px',
+          display: 'block'
+        }}
+      />
 
       {/* Overlays */}
       <div className={styles.mapOverlayTop}>
