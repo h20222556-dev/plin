@@ -14,6 +14,8 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
   useEffect(() => {
     if (!mapRef.current) return;
 
+    let timeoutId;
+
     const initMap = () => {
       if (!window.kakao || !window.kakao.maps) {
         console.error('카카오맵 SDK가 로드되지 않았습니다.');
@@ -21,6 +23,8 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
       }
 
       window.kakao.maps.load(() => {
+        if (!mapRef.current) return;
+
         // Set initial center
         const centerLat = tempLocation ? tempLocation.lat : 37.5665;
         const centerLng = tempLocation ? tempLocation.lng : 126.9780;
@@ -80,17 +84,21 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
       });
     };
 
-    if (window.kakao && window.kakao.maps) {
-      initMap();
-    } else {
-      const script = document.getElementById('kakao-map-sdk');
-      if (script) {
-        script.addEventListener('load', initMap);
-        return () => {
-          script.removeEventListener('load', initMap);
-        };
+    const waitForKakao = () => {
+      if (window.kakao && window.kakao.maps) {
+        initMap();
+      } else {
+        timeoutId = setTimeout(waitForKakao, 100);
       }
-    }
+    };
+
+    waitForKakao();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   return (

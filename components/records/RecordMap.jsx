@@ -16,6 +16,8 @@ export default function RecordMap({ records, onSelectRecord }) {
   useEffect(() => {
     if (!mapRef.current) return;
 
+    let timeoutId;
+
     const initMap = () => {
       if (!window.kakao || !window.kakao.maps) {
         console.error('카카오맵 SDK가 로드되지 않았습니다.');
@@ -23,6 +25,8 @@ export default function RecordMap({ records, onSelectRecord }) {
       }
 
       window.kakao.maps.load(() => {
+        if (!mapRef.current) return;
+
         // Default center: Seoul City Hall
         const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
         const options = {
@@ -45,17 +49,21 @@ export default function RecordMap({ records, onSelectRecord }) {
       });
     };
 
-    if (window.kakao && window.kakao.maps) {
-      initMap();
-    } else {
-      const script = document.getElementById('kakao-map-sdk');
-      if (script) {
-        script.addEventListener('load', initMap);
-        return () => {
-          script.removeEventListener('load', initMap);
-        };
+    const waitForKakao = () => {
+      if (window.kakao && window.kakao.maps) {
+        initMap();
+      } else {
+        timeoutId = setTimeout(waitForKakao, 100);
       }
-    }
+    };
+
+    waitForKakao();
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   // Update map when records list changes
