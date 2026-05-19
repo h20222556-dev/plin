@@ -16,34 +16,46 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   const [activeSection, setActiveSection] = useState(initialSection); // profile | settings
   const [editMode, setEditMode] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || '');
-  const [isPublic, setIsPublic] = useState(user?.is_public ?? true);
+  const [isPublic, setIsPublic] = useState(false);
   
   // Detailed privacy settings
-  const [showRecords, setShowRecords] = useState(user?.show_records ?? true);
-  const [showPosts, setShowPosts] = useState(user?.show_posts ?? true);
-  const [showFollowers, setShowFollowers] = useState(user?.show_followers ?? true);
+  const [showRecords, setShowRecords] = useState(false);
+  const [showPosts, setShowPosts] = useState(false);
+  const [showFollowers, setShowFollowers] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
 
-  // Sync state when user object changes
+  // Sync nickname only, since it is edited via a different save button
   useEffect(() => {
     if (user) {
       setNickname(user.nickname || '');
-      setIsPublic(user.is_public ?? true);
-      setShowRecords(user.show_records ?? true);
-      setShowPosts(user.show_posts ?? true);
-      setShowFollowers(user.show_followers ?? true);
     }
-  }, [user]);
+  }, [user?.nickname]);
 
+  // Load privacy settings from Supabase on mount/user ID change
   useEffect(() => {
-    if (user) {
-      setNickname(user.nickname || '');
-      setIsPublic(user.is_public ?? true);
-      setShowRecords(user.show_records ?? true);
-      setShowPosts(user.show_posts ?? true);
-      setShowFollowers(user.show_followers ?? true);
-    }
-  }, [user]);
+    if (!user?.id) return;
+
+    const loadPrivacySettings = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users')
+          .select('is_public, show_records, show_posts, show_followers')
+          .eq('id', user.id)
+          .single();
+
+        if (data && !error) {
+          setIsPublic(data.is_public ?? true);
+          setShowRecords(data.show_records ?? true);
+          setShowPosts(data.show_posts ?? true);
+          setShowFollowers(data.show_followers ?? true);
+        }
+      } catch (err) {
+        console.error('Failed to load privacy settings:', err);
+      }
+    };
+
+    loadPrivacySettings();
+  }, [user?.id]);
 
   useEffect(() => {
     if (!user) return;
@@ -62,7 +74,36 @@ export default function ProfilePage({ initialSection = 'profile' }) {
 
   const publicRecords = records.filter(r => r.isPublic);
 
-  const handlePrivacyChange = (key, newValue) => {
+  const savePrivacySettings = async (settings) => {
+    if (!user?.id) return;
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({
+          is_public: settings.isPublic,
+          show_records: settings.showRecords,
+          show_posts: settings.showPosts,
+          show_followers: settings.showFollowers
+        })
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Also update auth context so other components stay in sync immediately
+      if (auth?.updateProfile) {
+        auth.updateProfile({
+          isPublic: settings.isPublic,
+          showRecords: settings.showRecords,
+          showPosts: settings.showPosts,
+          showFollowers: settings.showFollowers
+        });
+      }
+    } catch (err) {
+      console.error('Error saving privacy settings:', err);
+    }
+  };
+
+  const handlePrivacyChange = async (key, newValue) => {
     let nextIsPublic = isPublic;
     let nextShowRecords = showRecords;
     let nextShowPosts = showPosts;
@@ -70,15 +111,9 @@ export default function ProfilePage({ initialSection = 'profile' }) {
 
     if (key === 'isPublic') {
       nextIsPublic = newValue;
-      if (newValue) {
-        nextShowRecords = true;
-        nextShowPosts = true;
-        nextShowFollowers = true;
-      } else {
-        nextShowRecords = false;
-        nextShowPosts = false;
-        nextShowFollowers = false;
-      }
+      nextShowRecords = newValue;
+      nextShowPosts = newValue;
+      nextShowFollowers = newValue;
     } else {
       if (key === 'showRecords') nextShowRecords = newValue;
       if (key === 'showPosts') nextShowPosts = newValue;
@@ -96,7 +131,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
     setShowPosts(nextShowPosts);
     setShowFollowers(nextShowFollowers);
 
-    updateProfile({
+    await savePrivacySettings({
       isPublic: nextIsPublic,
       showRecords: nextShowRecords,
       showPosts: nextShowPosts,

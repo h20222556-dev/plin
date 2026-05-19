@@ -35,12 +35,18 @@ export default function UserProfilePage({ params }) {
         // 1. Fetch user bio & details (including privacy settings)
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('*, show_records, show_posts, show_followers, is_public')
+          .select('*, is_public, show_records, show_posts, show_followers')
           .eq('id', userId)
           .single();
 
         if (userError) throw userError;
         setProfile(userData);
+
+        // Reset active tab if followers tab is private and currently selected
+        const isOwnerAccount = currentUser?.id === userId;
+        if (!isOwnerAccount && userData.show_followers === false && activeTab === 'followers') {
+          setActiveTab('records');
+        }
 
         // 2. Fetch records (performances)
         const isDemo = userId === '00000000-0000-0000-0000-000000000001' || userId === 'demo_user';
@@ -277,12 +283,14 @@ export default function UserProfilePage({ params }) {
               >
                 작성글 ({isOwner || profile.show_posts !== false ? posts.length : '비공개'})
               </button>
-              <button
-                className={`${styles.tabButton} ${activeTab === 'followers' ? styles.tabButtonActive : ''}`}
-                onClick={() => setActiveTab('followers')}
-              >
-                팔로워 ({isOwner || profile.show_followers !== false ? followerCount : '비공개'})
-              </button>
+              {(isOwner || profile.show_followers !== false) && (
+                <button
+                  className={`${styles.tabButton} ${activeTab === 'followers' ? styles.tabButtonActive : ''}`}
+                  onClick={() => setActiveTab('followers')}
+                >
+                  팔로워 ({isOwner || profile.show_followers !== false ? followerCount : '비공개'})
+                </button>
+              )}
             </div>
 
             {/* Tab Contents */}
