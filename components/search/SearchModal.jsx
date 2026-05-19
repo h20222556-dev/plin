@@ -309,9 +309,15 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                       >
                         <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
                         <div className={styles.cardInfo}>
-                          <h4 className={styles.cardTitle}>{u.nickname}</h4>
+                          <h4 className={styles.cardTitle}>
+                            {u.nickname}
+                            {!u.isPublic && <span className={styles.privateBadge}>비공개</span>}
+                          </h4>
                           <p className={styles.cardSubtitle}>
-                            {u.isPublic ? 'PLIN 회원' : '비공개 계정'}
+                            {u.isPublic 
+                              ? `${u.showRecords ? `관람 기록 ${u.recordsCount}` : '기록 비공개'} · ${u.showPosts ? `작성글 ${u.postsCount}` : '작성글 비공개'}`
+                              : '비공개 계정'
+                            }
                           </p>
                         </div>
                       </div>

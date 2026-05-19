@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { getOrCreateChatRoom } from '@/lib/hooks/useChat';
 import { ChevronLeft, Globe, Calendar, Music, MapPin, Lock, Heart, EyeOff } from 'lucide-react';
 import styles from './page.module.css';
 
@@ -137,6 +138,30 @@ export default function UserProfilePage({ params }) {
     }
   };
 
+  const handleStartChat = async () => {
+    if (!currentUser) {
+      alert('로그인이 필요한 기능입니다.');
+      return;
+    }
+    if (currentUser.id === userId) {
+      alert('자기 자신과 채팅할 수 없습니다.');
+      return;
+    }
+    try {
+      const room = await getOrCreateChatRoom(currentUser.id, userId);
+      sessionStorage.setItem('pendingChatRoom', JSON.stringify({
+        roomId: room.id,
+        recipientId: userId,
+        recipientNickname: profile.nickname,
+        expiresAt: room.expires_at
+      }));
+      router.push('/?tab=community');
+    } catch (err) {
+      console.error('채팅방 생성 실패:', err.message);
+      alert('채팅을 시작하지 못했습니다.');
+    }
+  };
+
   if (loading) {
     return (
       <div className={styles.loadingPage}>
@@ -161,7 +186,7 @@ export default function UserProfilePage({ params }) {
   const showTabMenu = isOwner || isPublicAccount;
 
   // Mask follower count if restricted
-  const displayFollowerCount = isOwner || profile.show_followers !== false ? followerCount : '비공개';
+  const displayFollowerCount = isOwner || profile.show_followers !== false ? followerCount : '팔로워 비공개';
 
   return (
     <div className={styles.page}>
@@ -188,40 +213,52 @@ export default function UserProfilePage({ params }) {
             </div>
 
             {!isOwner && (
-              <button
-                className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
-                onClick={handleFollowToggle}
-              >
-                {isFollowing ? '팔로잉' : '팔로우'}
-              </button>
+              <div className={styles.profileActions}>
+                <button
+                  className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
+                  onClick={handleFollowToggle}
+                >
+                  {isFollowing ? '팔로잉' : '팔로우'}
+                </button>
+                <button
+                  className={styles.chatBtn}
+                  onClick={handleStartChat}
+                >
+                  채팅하기
+                </button>
+              </div>
             )}
           </div>
 
-          <p className={styles.bio}>
-            {profile.bio || '등록된 소개글이 없습니다.'}
-          </p>
+          {(isOwner || isPublicAccount) && (
+            <>
+              <p className={styles.bio}>
+                {profile.bio || '등록된 소개글이 없습니다.'}
+              </p>
 
-          {/* Stats */}
-          <div className={styles.stats}>
-            <div className={styles.stat}>
-              <span className={styles.statNum}>
-                {isOwner || profile.show_records !== false ? records.length : '비공개'}
-              </span>
-              <span className={styles.statLabel}>관람 기록</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statNum}>
-                {isOwner || profile.show_posts !== false ? posts.length : '비공개'}
-              </span>
-              <span className={styles.statLabel}>작성글</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.stat}>
-              <span className={styles.statNum}>{displayFollowerCount}</span>
-              <span className={styles.statLabel}>팔로워</span>
-            </div>
-          </div>
+              {/* Stats */}
+              <div className={styles.stats}>
+                <div className={styles.stat}>
+                  <span className={styles.statNum}>
+                    {isOwner || profile.show_records !== false ? records.length : '비공개'}
+                  </span>
+                  <span className={styles.statLabel}>관람 기록</span>
+                </div>
+                <div className={styles.statDivider} />
+                <div className={styles.stat}>
+                  <span className={styles.statNum}>
+                    {isOwner || profile.show_posts !== false ? posts.length : '비공개'}
+                  </span>
+                  <span className={styles.statLabel}>작성글</span>
+                </div>
+                <div className={styles.statDivider} />
+                <div className={styles.stat}>
+                  <span className={styles.statNum}>{displayFollowerCount}</span>
+                  <span className={styles.statLabel}>팔로워</span>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Tab Selection (only if public or owner) */}
@@ -232,19 +269,19 @@ export default function UserProfilePage({ params }) {
                 className={`${styles.tabButton} ${activeTab === 'records' ? styles.tabButtonActive : ''}`}
                 onClick={() => setActiveTab('records')}
               >
-                관람 기록 ({records.length})
+                관람 기록 ({isOwner || profile.show_records !== false ? records.length : '비공개'})
               </button>
               <button
                 className={`${styles.tabButton} ${activeTab === 'posts' ? styles.tabButtonActive : ''}`}
                 onClick={() => setActiveTab('posts')}
               >
-                작성글 ({posts.length})
+                작성글 ({isOwner || profile.show_posts !== false ? posts.length : '비공개'})
               </button>
               <button
                 className={`${styles.tabButton} ${activeTab === 'followers' ? styles.tabButtonActive : ''}`}
                 onClick={() => setActiveTab('followers')}
               >
-                팔로워 ({followerCount})
+                팔로워 ({isOwner || profile.show_followers !== false ? followerCount : '비공개'})
               </button>
             </div>
 
@@ -256,7 +293,7 @@ export default function UserProfilePage({ params }) {
                   {!isOwner && profile.show_records === false ? (
                     <div className={styles.emptyState}>
                       <EyeOff size={24} style={{ margin: '0 auto 8px', color: '#98A2B3' }} />
-                      <p>이 사용자는 관람 기록을 공개하지 않았어요.</p>
+                      <p>관람 기록을 공개하지 않았어요.</p>
                     </div>
                   ) : records.length === 0 ? (
                     <div className={styles.emptyState}>
@@ -299,7 +336,7 @@ export default function UserProfilePage({ params }) {
                   {!isOwner && profile.show_posts === false ? (
                     <div className={styles.emptyState}>
                       <EyeOff size={24} style={{ margin: '0 auto 8px', color: '#98A2B3' }} />
-                      <p>이 사용자는 작성글을 공개하지 않았어요.</p>
+                      <p>작성글을 공개하지 않았어요.</p>
                     </div>
                   ) : posts.length === 0 ? (
                     <div className={styles.emptyState}>
@@ -336,7 +373,7 @@ export default function UserProfilePage({ params }) {
                   {!isOwner && profile.show_followers === false ? (
                     <div className={styles.emptyState}>
                       <EyeOff size={24} style={{ margin: '0 auto 8px', color: '#98A2B3' }} />
-                      <p>이 사용자는 팔로워를 공개하지 않았어요.</p>
+                      <p>팔로워 비공개</p>
                     </div>
                   ) : followers.length === 0 ? (
                     <div className={styles.emptyState}>
@@ -369,7 +406,7 @@ export default function UserProfilePage({ params }) {
           /* Private Account Screen */
           <div className={styles.privateAccountScreen}>
             <Lock size={40} color="#98A2B3" />
-            <h3 className={styles.privateTitle}>비공개 계정이에요</h3>
+            <h3 className={styles.privateTitle}>비공개 계정입니다</h3>
             <p className={styles.privateDesc}>이 사용자의 정보는 비공개 설정되어 있습니다.</p>
           </div>
         )}

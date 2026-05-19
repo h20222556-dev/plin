@@ -27,6 +27,21 @@ export default function CommunityPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
 
+  useEffect(() => {
+    const pendingChat = sessionStorage.getItem('pendingChatRoom');
+    if (pendingChat) {
+      try {
+        const chatData = JSON.parse(pendingChat);
+        setActiveChat(chatData);
+        setActiveTab('chats');
+      } catch (e) {
+        console.error(e);
+      } finally {
+        sessionStorage.removeItem('pendingChatRoom');
+      }
+    }
+  }, []);
+
   const handleStartChat = async (targetUser) => {
     // Allow chatting in demo mode
     if (!user) {
