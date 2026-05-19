@@ -6,73 +6,72 @@ import { useRecords } from '@/lib/hooks/useRecords';
 
 export default function RecordMap({ records, onSelectRecord }) {
   const { focusedRecord } = useRecords();
-  const mapRef = useRef(null);
+  const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const overlaysRef = useRef([]);
   const activeInfoWindowRef = useRef(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
-  // Initialize Kakao Map
   useEffect(() => {
-    if (!mapRef.current) return;
+    let retryCount = 0;
+    const maxRetry = 50;
 
-    let timeoutId;
+    const tryInit = () => {
+      if (!containerRef.current) {
+        console.warn('[RecordMap] containerRef가 없습니다.');
+        return;
+      }
 
-    const initMap = () => {
       if (!window.kakao || !window.kakao.maps) {
-        console.error('카카오맵 SDK가 로드되지 않았습니다.');
+        retryCount++;
+        if (retryCount < maxRetry) {
+          setTimeout(tryInit, 200);
+        } else {
+          console.error('[RecordMap] 카카오맵 SDK 로드 실패: 최대 재시도 횟수 초과');
+        }
         return;
       }
 
       window.kakao.maps.load(() => {
-        // DOM이 완전히 렌더링된 후 초기화
-        requestAnimationFrame(() => {
-          if (!mapRef.current) return;
+        if (!containerRef.current) return;
 
-          // Default center: Seoul City Hall
-          const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
-          const options = {
-            center: initialCenter,
-            level: 5
-          };
+        console.log('[RecordMap] 지도 초기화 시작');
+        console.log('[RecordMap] 컨테이너 크기:', containerRef.current.offsetWidth, containerRef.current.offsetHeight);
 
-          const map = new window.kakao.maps.Map(mapRef.current, options);
-          mapInstanceRef.current = map;
+        // Default center: Seoul City Hall
+        const initialCenter = new window.kakao.maps.LatLng(37.5665, 126.9780);
+        const options = {
+          center: initialCenter,
+          level: 5
+        };
 
-          // 지도 크기 재조정 (컨테이너 크기 변경 대응)
-          window.kakao.maps.event.addListener(map, 'tilesloaded', () => {
-            map.relayout();
-          });
+        const map = new window.kakao.maps.Map(containerRef.current, options);
+        mapInstanceRef.current = map;
 
-          setMapLoaded(true);
+        console.log('[RecordMap] 지도 생성 완료');
 
-          // Adjust map center if records are available
+        // 지도 크기 강제 재조정
+        setTimeout(() => {
+          map.relayout();
           if (records.length > 0) {
             const validRecords = records.filter(r => r.lat && r.lng);
             if (validRecords.length > 0) {
               const firstRecord = validRecords[0];
               map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+            } else {
+              map.setCenter(initialCenter);
             }
+          } else {
+            map.setCenter(initialCenter);
           }
-        });
+          console.log('[RecordMap] relayout 완료');
+        }, 300);
+
+        setMapLoaded(true);
       });
     };
 
-    const waitForKakao = () => {
-      if (window.kakao && window.kakao.maps) {
-        initMap();
-      } else {
-        timeoutId = setTimeout(waitForKakao, 100);
-      }
-    };
-
-    waitForKakao();
-
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
+    tryInit();
   }, []);
 
   // Update map when records list changes
@@ -189,13 +188,15 @@ export default function RecordMap({ records, onSelectRecord }) {
   return (
     <div className={styles.mapWrapper}>
       <div
-        ref={mapRef}
+        ref={containerRef}
+        id="kakao-map-container"
         className={styles.map}
         style={{
           width: '100%',
-          height: '500px',  // 명시적 픽셀값으로 지정
+          height: '500px',
           minHeight: '300px',
-          display: 'block'
+          display: 'block',
+          background: '#e0e0e0'
         }}
       />
 
