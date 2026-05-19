@@ -19,10 +19,21 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   const [isPublic, setIsPublic] = useState(user?.is_public ?? true);
   
   // Detailed privacy settings
-  const [showRecords, setShowRecords] = useState(true);
-  const [showPosts, setShowPosts] = useState(true);
-  const [showFollowers, setShowFollowers] = useState(true);
+  const [showRecords, setShowRecords] = useState(user?.show_records ?? true);
+  const [showPosts, setShowPosts] = useState(user?.show_posts ?? true);
+  const [showFollowers, setShowFollowers] = useState(user?.show_followers ?? true);
   const [followerCount, setFollowerCount] = useState(0);
+
+  // Sync state when user object changes
+  useEffect(() => {
+    if (user) {
+      setNickname(user.nickname || '');
+      setIsPublic(user.is_public ?? true);
+      setShowRecords(user.show_records ?? true);
+      setShowPosts(user.show_posts ?? true);
+      setShowFollowers(user.show_followers ?? true);
+    }
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -40,6 +51,44 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   }, [user?.id]);
 
   const publicRecords = records.filter(r => r.isPublic);
+
+  const handlePrivacyChange = (key, newValue) => {
+    let nextIsPublic = isPublic;
+    let nextShowRecords = showRecords;
+    let nextShowPosts = showPosts;
+    let nextShowFollowers = showFollowers;
+
+    if (key === 'isPublic') {
+      nextIsPublic = newValue;
+      if (!newValue) {
+        nextShowRecords = false;
+        nextShowPosts = false;
+        nextShowFollowers = false;
+      }
+    } else {
+      if (key === 'showRecords') nextShowRecords = newValue;
+      if (key === 'showPosts') nextShowPosts = newValue;
+      if (key === 'showFollowers') nextShowFollowers = newValue;
+
+      if (!nextIsPublic && newValue) {
+        nextIsPublic = true;
+      } else if (nextIsPublic && !nextShowRecords && !nextShowPosts && !nextShowFollowers) {
+        nextIsPublic = false;
+      }
+    }
+
+    setIsPublic(nextIsPublic);
+    setShowRecords(nextShowRecords);
+    setShowPosts(nextShowPosts);
+    setShowFollowers(nextShowFollowers);
+
+    updateProfile({
+      isPublic: nextIsPublic,
+      showRecords: nextShowRecords,
+      showPosts: nextShowPosts,
+      showFollowers: nextShowFollowers
+    });
+  };
 
   const handleSave = () => {
     updateProfile({ nickname, isPublic });
@@ -235,16 +284,16 @@ export default function ProfilePage({ initialSection = 'profile' }) {
               <div className={styles.settingsGroup}>
                 <p className={styles.groupLabel}>개인정보 및 공개 설정</p>
                 <div className={styles.settingItem}>
-                  {user?.is_public ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
+                  {isPublic ? <Globe size={20} color="#667085" /> : <Lock size={20} color="#667085" />}
                   <div className={styles.settingInfo}>
                     <p className={styles.settingTitle}>계정 전체 공개</p>
-                    <p className={styles.settingValue}>{user?.is_public ? '공개 계정' : '비공개 계정'}</p>
+                    <p className={styles.settingValue}>{isPublic ? '공개 계정' : '비공개 계정'}</p>
                   </div>
                   <label className={styles.switch}>
                     <input 
                       type="checkbox" 
-                      checked={user?.is_public ?? true}
-                      onChange={() => updateProfile({ isPublic: !user?.is_public })}
+                      checked={isPublic}
+                      onChange={(e) => handlePrivacyChange('isPublic', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -258,7 +307,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showRecords}
-                      onChange={(e) => setShowRecords(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showRecords', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -272,7 +321,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showPosts}
-                      onChange={(e) => setShowPosts(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showPosts', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
@@ -286,7 +335,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     <input 
                       type="checkbox" 
                       checked={showFollowers}
-                      onChange={(e) => setShowFollowers(e.target.checked)}
+                      onChange={(e) => handlePrivacyChange('showFollowers', e.target.checked)}
                     />
                     <span className={styles.slider}></span>
                   </label>
