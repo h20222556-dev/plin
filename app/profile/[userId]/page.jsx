@@ -11,7 +11,8 @@ export default function UserProfilePage({ params }) {
   const resolvedParams = React.use ? React.use(params) : params;
   const userId = resolvedParams?.userId;
   const router = useRouter();
-  const { user: currentUser } = useAuth();
+  const auth = useAuth();
+  const currentUser = auth?.user ?? null;
   
   const [profile, setProfile] = useState(null);
   const [records, setRecords] = useState([]);

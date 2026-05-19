@@ -8,7 +8,10 @@ import styles from './ProfilePage.module.css';
 import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight } from 'lucide-react';
 
 export default function ProfilePage({ initialSection = 'profile' }) {
-  const { user, logout, updateProfile } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user ?? null;
+  const logout = auth?.logout ?? (() => {});
+  const updateProfile = auth?.updateProfile ?? (() => {});
   const { records } = useRecords();
   const [activeSection, setActiveSection] = useState(initialSection); // profile | settings
   const [editMode, setEditMode] = useState(false);

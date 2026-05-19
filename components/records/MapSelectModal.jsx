@@ -15,6 +15,10 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
   // SDK 스크립트 동적 삽입
   useEffect(() => {
     const KAKAO_APP_KEY = process.env.NEXT_PUBLIC_KAKAO_MAP_KEY;
+    if (!KAKAO_APP_KEY) {
+      console.error('[MapSelectModal] NEXT_PUBLIC_KAKAO_MAP_KEY 환경 변수가 설정되지 않았습니다. .env.local 파일을 확인해 주세요.');
+      return;
+    }
     if (document.getElementById('kakao-map-sdk')) {
       if (window.kakao && window.kakao.maps) {
         setIsLoaded(true);
