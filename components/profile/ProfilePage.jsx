@@ -70,7 +70,11 @@ export default function ProfilePage({ initialSection = 'profile' }) {
 
     if (key === 'isPublic') {
       nextIsPublic = newValue;
-      if (!newValue) {
+      if (newValue) {
+        nextShowRecords = true;
+        nextShowPosts = true;
+        nextShowFollowers = true;
+      } else {
         nextShowRecords = false;
         nextShowPosts = false;
         nextShowFollowers = false;
@@ -80,9 +84,9 @@ export default function ProfilePage({ initialSection = 'profile' }) {
       if (key === 'showPosts') nextShowPosts = newValue;
       if (key === 'showFollowers') nextShowFollowers = newValue;
 
-      if (!nextIsPublic && newValue) {
+      if (nextShowRecords || nextShowPosts || nextShowFollowers) {
         nextIsPublic = true;
-      } else if (nextIsPublic && !nextShowRecords && !nextShowPosts && !nextShowFollowers) {
+      } else {
         nextIsPublic = false;
       }
     }

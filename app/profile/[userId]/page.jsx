@@ -35,7 +35,7 @@ export default function UserProfilePage({ params }) {
         // 1. Fetch user bio & details (including privacy settings)
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, nickname, profile_emoji, bio, is_public, show_records, show_posts, show_followers')
+          .select('*, show_records, show_posts, show_followers, is_public')
           .eq('id', userId)
           .single();
 
