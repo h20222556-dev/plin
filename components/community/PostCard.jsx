@@ -130,6 +130,30 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
     }
   };
 
+  const handleDeleteComment = async (commentId) => {
+    const confirmed = window.confirm('댓글을 삭제하시겠습니까?');
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from(COMMENTS_TABLE)
+        .delete()
+        .eq('id', commentId);
+
+      if (error) throw error;
+
+      // 댓글 목록에서 즉시 제거
+      setCommentsList(prev => prev.filter(c => c.id !== commentId));
+
+      // 게시글 댓글 수 즉시 감소
+      setCommentCount(prev => Math.max(prev - 1, 0));
+      post.comments = Math.max((post.comments || 1) - 1, 0);
+    } catch (err) {
+      console.error('댓글 삭제 실패:', err.message);
+      alert('댓글 삭제에 실패했습니다.');
+    }
+  };
+
   const handleToggleComments = () => {
     const nextShow = !showComments;
     setShowComments(nextShow);
@@ -290,12 +314,20 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>
                         {c.user_id === currentUserId && editingCommentId !== c.id && (
-                          <button
-                            onClick={() => handleStartEdit(c)}
-                            style={{ fontSize: 11, color: '#0054CB', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
-                          >
-                            수정
-                          </button>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              onClick={() => handleStartEdit(c)}
+                              style={{ fontSize: 11, color: '#0054CB', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: '500' }}
+                            >
+                              수정
+                            </button>
+                            <button
+                              onClick={() => handleDeleteComment(c.id)}
+                              style={{ fontSize: 11, color: '#F04438', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px', fontWeight: '500' }}
+                            >
+                              삭제
+                            </button>
+                          </div>
                         )}
                       </div>
                       
