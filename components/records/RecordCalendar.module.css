@@ -168,3 +168,17 @@
   color: var(--text-muted);
   font-size: 13px;
 }
+
+.daySelected {
+  background: var(--primary, #0054CB) !important;
+  border-radius: var(--radius-full, 9999px) !important;
+  border: 1px solid var(--primary, #0054CB) !important;
+}
+
+.daySelected .dayNum {
+  color: #FFFFFF !important;
+}
+
+.daySelected .dayDot {
+  color: #FFFFFF !important;
+}

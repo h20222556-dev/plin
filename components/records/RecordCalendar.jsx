@@ -5,8 +5,9 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSam
 import { ko } from 'date-fns/locale';
 import styles from './RecordCalendar.module.css';
 
-export default function RecordCalendar({ records, onSelectRecord }) {
+export default function RecordCalendar({ records, onSelectRecord, onRecordSelect }) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
@@ -28,6 +29,22 @@ export default function RecordCalendar({ records, onSelectRecord }) {
   const nextMonth = () => {
     setCurrentMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
   };
+
+  const handleDateClick = (date) => {
+    setSelectedDate(date);
+  };
+
+  const handleRecordItemClick = (record) => {
+    if (onRecordSelect) {
+      onRecordSelect(record);
+    } else if (onSelectRecord) {
+      onSelectRecord(record);
+    }
+  };
+
+  const selectedDatePerformances = selectedDate
+    ? records.filter(r => r.date && r.date.slice(0, 10) === selectedDate)
+    : [];
 
   const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -64,12 +81,13 @@ export default function RecordCalendar({ records, onSelectRecord }) {
           const key = format(day, 'yyyy-MM-dd');
           const dayRecords = recordsByDate[key] || [];
           const hasRecord = dayRecords.length > 0;
+          const isSelected = selectedDate === key;
 
           return (
             <button
               key={key}
-              className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''}`}
-              onClick={() => hasRecord && onSelectRecord(dayRecords[0])}
+              className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''} ${isSelected ? styles.daySelected : ''}`}
+              onClick={() => handleDateClick(key)}
             >
               <span className={styles.dayNum}>{format(day, 'd')}</span>
               {hasRecord && (
@@ -86,28 +104,50 @@ export default function RecordCalendar({ records, onSelectRecord }) {
         })}
       </div>
 
-      {/* Records this month */}
+      {/* Records Section */}
       <div className={styles.monthRecords}>
         <h3 className={styles.monthRecordsTitle}>
-          이번 달 기록 ({Object.values(recordsByDate).flat().length}개)
+          {selectedDate ? `${selectedDate} 공연` : `이번 달 기록 (${Object.values(recordsByDate).flat().length}개)`}
         </h3>
         <div className={styles.monthRecordList}>
-          {records
-            .filter(r => r.date && r.date.startsWith(format(currentMonth, 'yyyy-MM')))
-            .map(r => (
-              <button
-                key={r.id}
-                className={styles.monthRecordItem}
-                onClick={() => onSelectRecord(r)}
-              >
-                <span className={styles.monthRecordEmoji}>{r.emotion || '🎵'}</span>
-                <div className={styles.monthRecordInfo}>
-                  <span className={styles.monthRecordName}>{r.concertName}</span>
-                  <span className={styles.monthRecordDate}>{r.date}</span>
-                </div>
-              </button>
-            ))}
-          {!records.some(r => r.date && r.date.startsWith(format(currentMonth, 'yyyy-MM'))) && (
+          {selectedDate ? (
+            selectedDatePerformances.length > 0 ? (
+              selectedDatePerformances.map(r => (
+                <button
+                  key={r.id}
+                  className={styles.monthRecordItem}
+                  onClick={() => handleRecordItemClick(r)}
+                >
+                  <span className={styles.monthRecordEmoji}>{r.emotion || '🎵'}</span>
+                  <div className={styles.monthRecordInfo}>
+                    <span className={styles.monthRecordName}>{r.concertName}</span>
+                    <span className={styles.monthRecordDate}>{r.date}</span>
+                  </div>
+                </button>
+              ))
+            ) : (
+              <div className={styles.noRecords}>
+                <p>이 날에는 공연이 없습니다.</p>
+              </div>
+            )
+          ) : (
+            records
+              .filter(r => r.date && r.date.startsWith(format(currentMonth, 'yyyy-MM')))
+              .map(r => (
+                <button
+                  key={r.id}
+                  className={styles.monthRecordItem}
+                  onClick={() => handleRecordItemClick(r)}
+                >
+                  <span className={styles.monthRecordEmoji}>{r.emotion || '🎵'}</span>
+                  <div className={styles.monthRecordInfo}>
+                    <span className={styles.monthRecordName}>{r.concertName}</span>
+                    <span className={styles.monthRecordDate}>{r.date}</span>
+                  </div>
+                </button>
+              ))
+          )}
+          {!selectedDate && !records.some(r => r.date && r.date.startsWith(format(currentMonth, 'yyyy-MM'))) && (
             <p className={styles.noRecords}>이번 달 기록이 없어요</p>
           )}
         </div>
