@@ -177,6 +177,13 @@ export default function ChatModal({ chat, onClose }) {
   const isBlocked = chatRoom?.is_blocked ?? false;
   const isReadOnly = isExpired || isBlocked;
 
+  // 만료 시간이 있고 아직 만료되지 않았으며 차단되지 않은 경우 표시
+  const showExtendButton = 
+    chatRoom?.expires_at !== null && 
+    chatRoom?.expires_at !== undefined &&
+    !isExpired &&
+    !isBlocked;
+
   const getTimeLeft = () => {
     if (isBlocked) {
       return '차단됨';
@@ -243,7 +250,7 @@ export default function ChatModal({ chat, onClose }) {
                   </div>
                 )}
 
-                {!isBlocked && chatRoom?.expires_at && (
+                {showExtendButton && (
                   <button
                     onClick={handleExtendChat}
                     style={{

@@ -22,9 +22,9 @@ export default function ChatList({ onOpenChat }) {
       try {
         const { data, error } = await supabase
           .from('chat_rooms')
-          .select('id, expires_at, created_at, user_a_id, user_b_id, is_blocked, blocked_by, is_extended')
+          .select('*')
           .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
-          .order('expires_at', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
 
