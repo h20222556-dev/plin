@@ -18,13 +18,73 @@ import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react
  */
 export default function ChatModal({ chat, onClose }) {
   const { user, isDemoMode } = useAuth();
-  const { messages, loading, expiresAt, sendMessage, chatRoom, setChatRoom } = useChat(chat.roomId, chat.recipientId);
+  const { messages, loading, sendMessage } = useChat(chat.roomId, chat.recipientId);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
 
   const [showMenu, setShowMenu] = useState(false);
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [opponent, setOpponent] = useState(null);
+
+  const [chatRoom, setChatRoom] = useState(null);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true);
+
+  useEffect(() => {
+    const fetchChatRoom = async () => {
+      if (isDemoMode) {
+        const { MOCK_CHATS } = require('@/lib/mockData');
+        const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
+        if (mockRoom) {
+          setChatRoom({
+            id: mockRoom.roomId,
+            user_a_id: '00000000-0000-0000-0000-000000000001',
+            user_b_id: mockRoom.recipientId,
+            expires_at: mockRoom.expiresAt,
+            is_blocked: mockRoom.isBlocked ?? false,
+            blocked_by: mockRoom.blockedBy ?? null,
+            is_extended: mockRoom.isExtended ?? false,
+          });
+        }
+        setIsLoadingRoom(false);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('id', chat.roomId)
+        .single();
+
+      if (error) {
+        console.error('채팅방 조회 실패:', error.message);
+        setIsLoadingRoom(false);
+        return;
+      }
+
+      setChatRoom(data);
+      setIsLoadingRoom(false);
+    };
+
+    fetchChatRoom();
+
+    if (isDemoMode) return;
+
+    const roomChannel = supabase
+      .channel(`chat_room_${chat.roomId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'chat_rooms', filter: `id=eq.${chat.roomId}` },
+        (payload) => {
+          const updatedRoom = payload.new;
+          setChatRoom(updatedRoom);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(roomChannel);
+    };
+  }, [chat.roomId, isDemoMode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,11 +172,20 @@ export default function ChatModal({ chat, onClose }) {
 
     if (error) {
       console.error('대화 연장 실패:', error.message);
-      alert('대화 연장에 실패했습니다.');
+      alert('대화 연장에 실패했습니다: ' + error.message);
       return;
     }
 
-    setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
+    // DB에서 최신 상태 다시 불러오기
+    const { data: updatedRoom } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('id', chat.roomId)
+      .single();
+
+    if (updatedRoom) {
+      setChatRoom(updatedRoom);
+    }
     setShowMenu(false);
     alert('대화가 계속 이어집니다!');
   };
@@ -144,7 +213,7 @@ export default function ChatModal({ chat, onClose }) {
 
       if (blockError && blockError.code !== '23505') {
         console.error('차단 실패:', blockError.message);
-        alert('차단 처리에 실패했습니다.');
+        alert('차단에 실패했습니다: ' + blockError.message);
         return;
       }
 
@@ -158,37 +227,45 @@ export default function ChatModal({ chat, onClose }) {
 
       if (roomError) {
         console.error('채팅방 차단 처리 실패:', roomError.message);
-        alert('채팅방 차단 설정에 실패했습니다.');
+        alert('차단 처리 실패: ' + roomError.message);
         return;
       }
 
-      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: currentUser.id } : prev);
+      // DB에서 최신 상태 다시 불러오기
+      const { data: updatedRoom } = await supabase
+        .from('chat_rooms')
+        .select('*')
+        .eq('id', chat.roomId)
+        .single();
+
+      if (updatedRoom) {
+        setChatRoom(updatedRoom);
+      }
       setShowBlockConfirm(false);
-      alert('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다.');
+      setShowMenu(false);
+      alert('차단되었습니다.');
     } catch (err) {
-      console.error('Error blocking user:', err);
+      console.error('차단 처리 중 오류:', err);
     }
   };
 
-  const isExpired = expiresAt
-    ? new Date(expiresAt) < new Date()
+  // 차단 및 만료 상태 계산
+  const isExpired = chatRoom?.expires_at
+    ? new Date(chatRoom.expires_at) < new Date()
     : false;
 
   const isBlocked = chatRoom?.is_blocked ?? false;
   const isReadOnly = isExpired || isBlocked;
 
-  // 만료 시간이 있고 아직 만료되지 않았으며 차단되지 않은 경우 표시
-  const showExtendButton = 
-    chatRoom?.expires_at !== null && 
-    chatRoom?.expires_at !== undefined &&
-    !isExpired &&
-    !isBlocked;
+  // 대화 계속하기 버튼 표시 조건 수정
+  // 만료되었거나 만료 시간이 있는 경우 모두 표시 (차단된 경우 제외)
+  const showExtendButton = !isBlocked && (isExpired || chatRoom?.expires_at);
 
   const getTimeLeft = () => {
     if (isBlocked) {
       return '차단됨';
     }
-    const target = expiresAt || chat.expiresAt;
+    const target = chatRoom?.expires_at || chat.expiresAt;
     if (!target) {
       if (chatRoom?.is_extended) return '계속 대화 가능';
       return '3일 후 삭제';
@@ -297,10 +374,12 @@ export default function ChatModal({ chat, onClose }) {
 
         {/* Messages */}
         <div className={styles.messages}>
-          <div className={styles.ephemeralNotice}>
-            <Info size={14} color="#0054CB" style={{ flexShrink: 0 }} />
-            <span>이 대화는 마지막 메시지로부터 3일 후 자동 삭제됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
-          </div>
+          {!isExpired && !isBlocked && (
+            <div className={styles.ephemeralNotice}>
+              <Info size={14} color="#0054CB" style={{ flexShrink: 0 }} />
+              <span>이 대화는 마지막 메시지로부터 3일 후 자동 삭제됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
+            </div>
+          )}
 
           {loading && (
             <div style={{ textAlign: 'center', padding: '20px', color: '#667085' }}>불러오는 중...</div>
@@ -343,22 +422,36 @@ export default function ChatModal({ chat, onClose }) {
         {/* Input */}
         {isReadOnly ? (
           <div style={{
-            padding: '18px 16px',
+            padding: '16px',
             textAlign: 'center',
-            background: 'var(--bg-secondary)',
-            borderTop: '1px solid var(--border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '8px'
+            background: '#f8f8f8',
+            borderTop: '1px solid #eee'
           }}>
-            <Info size={16} color="var(--text-muted)" />
-            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: '600' }}>
-              {isBlocked
-                ? '차단된 대화방입니다. 더 이상 대화를 이어갈 수 없습니다.'
-                : '만료된 대화방입니다. 이전 대화 내용만 열람할 수 있습니다.'
-              }
-            </p>
+            {isBlocked ? (
+              <p style={{ fontSize: 14, color: '#888' }}>
+                차단된 대화방입니다. 더 이상 대화를 이어갈 수 없습니다.
+              </p>
+            ) : (
+              <div>
+                <p style={{ fontSize: 14, color: '#888', marginBottom: 12 }}>
+                  만료된 대화방입니다. 이전 대화 내용만 열람할 수 있습니다.
+                </p>
+                <button
+                  onClick={handleExtendChat}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: 20,
+                    border: 'none',
+                    background: '#007AFF',
+                    color: 'white',
+                    fontSize: 14,
+                    cursor: 'pointer'
+                  }}
+                >
+                  대화 계속하기
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className={styles.inputArea}>

@@ -86,27 +86,43 @@ export default function ProfilePage({ initialSection = 'profile' }) {
             id: 'mock-block-1',
             blocked_id: 'demo-user-2',
             created_at: new Date().toISOString(),
-            users: { nickname: '안유진진자라', profile_emoji: '🐶' }
+            user: { nickname: '안유진진자라', profile_emoji: '🐶' }
           }
         ]);
         return;
       }
 
       try {
-        const { data, error } = await supabase
+        // JOIN 대신 두 번 조회하는 방식으로 수정
+        const { data: blockList, error } = await supabase
           .from('blocked_users')
-          .select(`
-            id,
-            blocked_id,
-            created_at,
-            users!blocked_id (nickname, profile_emoji)
-          `)
+          .select('id, blocked_id, created_at')
           .eq('blocker_id', user.id)
           .order('created_at', { ascending: false });
 
-        if (!error && data) {
-          setBlockedUsers(data);
+        if (error) {
+          console.error('차단 목록 조회 실패:', error.message);
+          return;
         }
+
+        if (!blockList || blockList.length === 0) {
+          setBlockedUsers([]);
+          return;
+        }
+
+        // 차단된 유저 정보 별도 조회
+        const blockedIds = blockList.map(b => b.blocked_id);
+        const { data: usersData } = await supabase
+          .from('users')
+          .select('id, nickname, profile_emoji')
+          .in('id', blockedIds);
+
+        const merged = blockList.map(block => ({
+          ...block,
+          user: usersData?.find(u => u.id === block.blocked_id) ?? null
+        }));
+
+        setBlockedUsers(merged);
       } catch (err) {
         console.error('Failed to fetch blocked users:', err);
       }
@@ -115,7 +131,7 @@ export default function ProfilePage({ initialSection = 'profile' }) {
     fetchBlockedUsers();
   }, [user?.id, activeSection, isDemoMode]);
 
-  const handleUnblock = async (blockId, blockedUserId) => {
+  const handleUnblock = async (blockId) => {
     const confirmed = window.confirm('차단을 해제하시겠습니까?');
     if (!confirmed) return;
 
@@ -124,6 +140,10 @@ export default function ProfilePage({ initialSection = 'profile' }) {
       alert('차단이 해제되었습니다. (데모 모드)');
       return;
     }
+
+    const blockedItem = blockedUsers.find(b => b.id === blockId);
+    const blockedUserId = blockedItem?.blocked_id;
+    if (!blockedUserId) return;
 
     try {
       const { error } = await supabase
@@ -495,13 +515,13 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                         border: '1px solid var(--border)'
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <span style={{ fontSize: '20px' }}>{blocked.users?.profile_emoji || '🧑‍🎤'}</span>
+                          <span style={{ fontSize: '20px' }}>{blocked.user?.profile_emoji || '🧑‍🎤'}</span>
                           <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                            {blocked.users?.nickname || '알 수 없는 사용자'}
+                            {blocked.user?.nickname || '알 수 없는 사용자'}
                           </span>
                         </div>
                         <button
-                          onClick={() => handleUnblock(blocked.id, blocked.blocked_id)}
+                          onClick={() => handleUnblock(blocked.id)}
                           style={{
                             padding: '6px 12px',
                             borderRadius: '8px',
