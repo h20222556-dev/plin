@@ -24,6 +24,9 @@ export default function ProfilePage({ initialSection = 'profile' }) {
   const [showFollowers, setShowFollowers] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
 
+  const isDemoMode = auth?.isDemoMode ?? false;
+  const [blockedUsers, setBlockedUsers] = useState([]);
+
   // Sync nickname only, since it is edited via a different save button
   useEffect(() => {
     if (user) {
@@ -71,6 +74,90 @@ export default function ProfilePage({ initialSection = 'profile' }) {
 
     fetchFollowerCount();
   }, [user?.id]);
+
+  // Load blocked users
+  useEffect(() => {
+    if (!user?.id || activeSection !== 'settings') return;
+
+    const fetchBlockedUsers = async () => {
+      if (isDemoMode) {
+        setBlockedUsers([
+          {
+            id: 'mock-block-1',
+            blocked_id: 'demo-user-2',
+            created_at: new Date().toISOString(),
+            users: { nickname: '안유진진자라', profile_emoji: '🐶' }
+          }
+        ]);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('blocked_users')
+          .select(`
+            id,
+            blocked_id,
+            created_at,
+            users!blocked_id (nickname, profile_emoji)
+          `)
+          .eq('blocker_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (!error && data) {
+          setBlockedUsers(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch blocked users:', err);
+      }
+    };
+
+    fetchBlockedUsers();
+  }, [user?.id, activeSection, isDemoMode]);
+
+  const handleUnblock = async (blockId, blockedUserId) => {
+    const confirmed = window.confirm('차단을 해제하시겠습니까?');
+    if (!confirmed) return;
+
+    if (isDemoMode) {
+      setBlockedUsers(prev => prev.filter(b => b.id !== blockId));
+      alert('차단이 해제되었습니다. (데모 모드)');
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('blocked_users')
+        .delete()
+        .eq('id', blockId);
+
+      if (error) {
+        console.error('차단 해제 실패:', error.message);
+        alert('차단 해제에 실패했습니다.');
+        return;
+      }
+
+      // Also unblock the chat room if any exists between these users
+      const { data: rooms } = await supabase
+        .from('chat_rooms')
+        .select('id')
+        .or(`and(user_a_id.eq.${user.id},user_b_id.eq.${blockedUserId}),and(user_a_id.eq.${blockedUserId},user_b_id.eq.${user.id})`);
+
+      if (rooms && rooms.length > 0) {
+        for (const room of rooms) {
+          await supabase
+            .from('chat_rooms')
+            .update({ is_blocked: false, blocked_by: null })
+            .eq('id', room.id);
+        }
+      }
+
+      setBlockedUsers(prev => prev.filter(b => b.id !== blockId));
+      alert('차단이 해제되었습니다.');
+    } catch (err) {
+      console.error('Error during unblock:', err);
+    }
+  };
 
   const publicRecords = records.filter(r => r.isPublic);
 
@@ -388,6 +475,49 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                     />
                     <span className={styles.slider}></span>
                   </label>
+                </div>
+              </div>
+
+              <div className={styles.settingsGroup}>
+                <p className={styles.groupLabel}>차단 관리</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '8px 0' }}>
+                  {blockedUsers.length === 0 ? (
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', padding: '8px 16px' }}>차단한 사용자가 없습니다.</p>
+                  ) : (
+                    blockedUsers.map(blocked => (
+                      <div key={blocked.id} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 16px',
+                        background: 'var(--bg-surface)',
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border)'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '20px' }}>{blocked.users?.profile_emoji || '🧑‍🎤'}</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {blocked.users?.nickname || '알 수 없는 사용자'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleUnblock(blocked.id, blocked.blocked_id)}
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border)',
+                            background: 'white',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#ff3b30',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          차단 해제
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </div>
 

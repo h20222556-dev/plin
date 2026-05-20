@@ -22,7 +22,7 @@ export default function ChatList({ onOpenChat }) {
       try {
         const { data, error } = await supabase
           .from('chat_rooms')
-          .select('id, expires_at, created_at, user_a_id, user_b_id')
+          .select('id, expires_at, created_at, user_a_id, user_b_id, is_blocked, blocked_by, is_extended')
           .or(`user_a_id.eq.${user.id},user_b_id.eq.${user.id}`)
           .order('expires_at', { ascending: false });
 
@@ -58,7 +58,9 @@ export default function ChatList({ onOpenChat }) {
               .eq('receiver_id', user.id)
               .eq('is_read', false);
 
-            const isExpired = new Date(room.expires_at) < new Date();
+            const isExpired = room.expires_at
+              ? new Date(room.expires_at) < new Date()
+              : false;
 
             return {
               roomId: room.id,
@@ -70,6 +72,9 @@ export default function ChatList({ onOpenChat }) {
               expiresAt: room.expires_at,
               unread: unread || 0,
               isExpired,
+              isBlocked: room.is_blocked || false,
+              blockedBy: room.blocked_by,
+              isExtended: room.is_extended || false,
             };
           })
         );
@@ -77,7 +82,9 @@ export default function ChatList({ onOpenChat }) {
         if (isDemoMode) {
           const { MOCK_CHATS } = require('@/lib/mockData');
           const mockEnriched = MOCK_CHATS.map(mc => {
-            const isExpired = new Date(mc.expiresAt) < new Date();
+            const isExpired = mc.expiresAt
+              ? new Date(mc.expiresAt) < new Date()
+              : false;
             return {
               roomId: mc.roomId,
               recipientId: mc.recipientId,
@@ -88,6 +95,9 @@ export default function ChatList({ onOpenChat }) {
               expiresAt: mc.expiresAt,
               unread: mc.unread,
               isExpired,
+              isBlocked: mc.isBlocked || false,
+              blockedBy: mc.blockedBy || null,
+              isExtended: mc.isExtended || false,
             };
           });
 
@@ -134,6 +144,7 @@ export default function ChatList({ onOpenChat }) {
   };
 
   const getTimeLeft = (expiresAt) => {
+    if (!expiresAt) return null;
     const diff = new Date(expiresAt).getTime() - Date.now();
     if (diff <= 0) return null;
     const hr = Math.floor(diff / 3600000);
@@ -143,7 +154,6 @@ export default function ChatList({ onOpenChat }) {
   };
 
   const handleOpen = (chat) => {
-    if (chat.isExpired) return;
     onOpenChat({
       roomId: chat.roomId,
       recipientId: chat.recipientId,
@@ -193,9 +203,8 @@ export default function ChatList({ onOpenChat }) {
           return (
             <button
               key={chat.roomId}
-              className={`${styles.chatItem} ${chat.isExpired ? styles.expired : ''}`}
+              className={`${styles.chatItem} ${chat.isExpired || chat.isBlocked ? styles.expired : ''}`}
               onClick={() => handleOpen(chat)}
-              disabled={chat.isExpired}
             >
               <div className={styles.chatAvatar}>
                 {chat.recipientEmoji ? (
@@ -214,8 +223,12 @@ export default function ChatList({ onOpenChat }) {
                   <span className={styles.chatTime}>{timeAgo(chat.lastMessageAt)}</span>
                 </div>
                 <p className={styles.chatPreview}>{chat.lastMessage}</p>
-                {chat.isExpired ? (
+                {chat.isBlocked ? (
+                  <span className={styles.expiredBadge} style={{ backgroundColor: '#ff3b30', color: 'white' }}>차단됨</span>
+                ) : chat.isExpired ? (
                   <span className={styles.expiredBadge}>만료됨</span>
+                ) : chat.isExtended ? (
+                  <span className={styles.timeBadge} style={{ color: 'var(--text-secondary)' }}><Clock size={12} style={{ marginRight: 2 }} /> 계속 대화 가능</span>
                 ) : timeLeft ? (
                   <span className={styles.timeBadge}><Clock size={12} style={{ marginRight: 2 }} /> {timeLeft}</span>
                 ) : null}
