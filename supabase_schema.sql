@@ -115,11 +115,14 @@ CREATE TRIGGER post_likes_sync
 -- 5. CHAT_ROOMS 테이블 (1:1 채팅방)
 -- ──────────────────────────────────────
 CREATE TABLE IF NOT EXISTS public.chat_rooms (
-  id         UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_a_id  UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  user_b_id  UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  expires_at TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '3 days'),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_a_id   UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  user_b_id   UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  expires_at  TIMESTAMPTZ NOT NULL DEFAULT (NOW() + INTERVAL '3 days'),
+  is_blocked  BOOLEAN     NOT NULL DEFAULT FALSE,
+  blocked_by  UUID        REFERENCES public.users(id) ON DELETE SET NULL,
+  is_extended BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   UNIQUE (
     LEAST(user_a_id::TEXT, user_b_id::TEXT),
     GREATEST(user_a_id::TEXT, user_b_id::TEXT)
@@ -129,6 +132,7 @@ CREATE TABLE IF NOT EXISTS public.chat_rooms (
 CREATE INDEX IF NOT EXISTS chat_rooms_user_a_idx ON public.chat_rooms(user_a_id);
 CREATE INDEX IF NOT EXISTS chat_rooms_user_b_idx ON public.chat_rooms(user_b_id);
 CREATE INDEX IF NOT EXISTS chat_rooms_expires_at_idx ON public.chat_rooms(expires_at);
+
 
 -- ──────────────────────────────────────
 -- 6. CHATS 테이블 (채팅 메시지)
@@ -231,6 +235,11 @@ CREATE POLICY "chat_rooms_select" ON public.chat_rooms FOR SELECT
 CREATE POLICY "chat_rooms_insert" ON public.chat_rooms FOR INSERT
   WITH CHECK (auth.uid() = user_a_id OR auth.uid() = user_b_id);
 
+CREATE POLICY "chat_rooms_update" ON public.chat_rooms FOR UPDATE
+  USING (auth.uid() = user_a_id OR auth.uid() = user_b_id)
+  WITH CHECK (auth.uid() = user_a_id OR auth.uid() = user_b_id);
+
+
 
 -- ── CHATS ──
 ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
@@ -292,6 +301,28 @@ ALTER TABLE public.follows ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "follows_select" ON public.follows FOR SELECT USING (TRUE);
 CREATE POLICY "follows_insert" ON public.follows FOR INSERT WITH CHECK (auth.uid() = follower_id);
 CREATE POLICY "follows_delete" ON public.follows FOR DELETE USING (auth.uid() = follower_id);
+
+
+-- ──────────────────────────────────────
+-- 8.5 BLOCKED_USERS 테이블 (차단한 유저)
+-- ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.blocked_users (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  blocker_id  UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  blocked_id  UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (blocker_id, blocked_id)
+);
+
+CREATE INDEX IF NOT EXISTS blocked_users_blocker_id_idx ON public.blocked_users(blocker_id);
+CREATE INDEX IF NOT EXISTS blocked_users_blocked_id_idx ON public.blocked_users(blocked_id);
+
+-- ── BLOCKED_USERS RLS ──
+ALTER TABLE public.blocked_users ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "blocked_users_select" ON public.blocked_users FOR SELECT USING (auth.uid() = blocker_id);
+CREATE POLICY "blocked_users_insert" ON public.blocked_users FOR INSERT WITH CHECK (auth.uid() = blocker_id);
+CREATE POLICY "blocked_users_delete" ON public.blocked_users FOR DELETE USING (auth.uid() = blocker_id);
+
 
 
 -- ============================================================

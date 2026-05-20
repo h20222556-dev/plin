@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 import styles from './ChatModal.module.css';
 import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react';
 
@@ -16,14 +17,76 @@ import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react
  * }
  */
 export default function ChatModal({ chat, onClose }) {
-  const { user } = useAuth();
-  const { messages, loading, expiresAt, sendMessage } = useChat(chat.roomId, chat.recipientId);
+  const { user, isDemoMode } = useAuth();
+  const { messages, loading, expiresAt, sendMessage, chatRoom, setChatRoom } = useChat(chat.roomId, chat.recipientId);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
+
+  const [showMenu, setShowMenu] = useState(false);
+  const [showBlockConfirm, setShowBlockConfirm] = useState(false);
+  const [opponent, setOpponent] = useState(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    const fetchOpponent = async () => {
+      if (isDemoMode) {
+        const { MOCK_CHATS } = require('@/lib/mockData');
+        const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
+        if (mockRoom) {
+          setOpponent({
+            id: mockRoom.recipientId,
+            nickname: mockRoom.recipientNickname,
+            profile_emoji: mockRoom.recipientEmoji || '🧑‍🎤',
+            bio: 'PLIN 공연 메이트입니다!'
+          });
+        } else {
+          setOpponent({
+            id: chat.recipientId,
+            nickname: chat.recipientNickname || '데모 상대방',
+            profile_emoji: '🧑‍🎤',
+            bio: 'PLIN 공연 메이트입니다!'
+          });
+        }
+        return;
+      }
+
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        if (!currentUser) return;
+
+        let targetId = chat.recipientId;
+        if (!targetId) {
+          const { data: room } = await supabase
+            .from('chat_rooms')
+            .select('user_a_id, user_b_id')
+            .eq('id', chat.roomId)
+            .single();
+          if (room) {
+            targetId = room.user_a_id === currentUser.id ? room.user_b_id : room.user_a_id;
+          }
+        }
+
+        if (!targetId) return;
+
+        const { data: opponentData } = await supabase
+          .from('users')
+          .select('id, nickname, profile_emoji, bio')
+          .eq('id', targetId)
+          .single();
+
+        if (opponentData) {
+          setOpponent(opponentData);
+        }
+      } catch (err) {
+        console.error('Error fetching opponent:', err);
+      }
+    };
+
+    fetchOpponent();
+  }, [chat.roomId, chat.recipientId, isDemoMode]);
 
   const send = async () => {
     if (!input.trim()) return;
@@ -31,9 +94,98 @@ export default function ChatModal({ chat, onClose }) {
     setInput('');
   };
 
+  const handleExtendChat = async () => {
+    if (isDemoMode) {
+      setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
+      setShowMenu(false);
+      alert('대화가 계속 이어집니다! (데모 모드)');
+      return;
+    }
+
+    const { error } = await supabase
+      .from('chat_rooms')
+      .update({
+        expires_at: null,
+        is_extended: true
+      })
+      .eq('id', chat.roomId);
+
+    if (error) {
+      console.error('대화 연장 실패:', error.message);
+      alert('대화 연장에 실패했습니다.');
+      return;
+    }
+
+    setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
+    setShowMenu(false);
+    alert('대화가 계속 이어집니다!');
+  };
+
+  const handleBlock = async () => {
+    if (!opponent) return;
+
+    if (isDemoMode) {
+      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: user.id } : prev);
+      setShowBlockConfirm(false);
+      alert('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다. (데모 모드)');
+      return;
+    }
+
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (!currentUser) return;
+
+      const { error: blockError } = await supabase
+        .from('blocked_users')
+        .insert({
+          blocker_id: currentUser.id,
+          blocked_id: opponent.id
+        });
+
+      if (blockError && blockError.code !== '23505') {
+        console.error('차단 실패:', blockError.message);
+        alert('차단 처리에 실패했습니다.');
+        return;
+      }
+
+      const { error: roomError } = await supabase
+        .from('chat_rooms')
+        .update({
+          is_blocked: true,
+          blocked_by: currentUser.id
+        })
+        .eq('id', chat.roomId);
+
+      if (roomError) {
+        console.error('채팅방 차단 처리 실패:', roomError.message);
+        alert('채팅방 차단 설정에 실패했습니다.');
+        return;
+      }
+
+      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: currentUser.id } : prev);
+      setShowBlockConfirm(false);
+      alert('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다.');
+    } catch (err) {
+      console.error('Error blocking user:', err);
+    }
+  };
+
+  const isExpired = expiresAt
+    ? new Date(expiresAt) < new Date()
+    : false;
+
+  const isBlocked = chatRoom?.is_blocked ?? false;
+  const isReadOnly = isExpired || isBlocked;
+
   const getTimeLeft = () => {
+    if (isBlocked) {
+      return '차단됨';
+    }
     const target = expiresAt || chat.expiresAt;
-    if (!target) return '3일 후 삭제';
+    if (!target) {
+      if (chatRoom?.is_extended) return '계속 대화 가능';
+      return '3일 후 삭제';
+    }
     const diff = new Date(target).getTime() - Date.now();
     if (diff <= 0) return '만료됨';
     const hr = Math.floor(diff / 3600000);
@@ -41,7 +193,7 @@ export default function ChatModal({ chat, onClose }) {
     return `${Math.floor(hr / 24)}일 후 삭제`;
   };
 
-  const nickname = chat.recipientNickname || '알 수 없는 사용자';
+  const nickname = opponent?.nickname || chat.recipientNickname || '알 수 없는 사용자';
 
   return (
     <div className={styles.overlay}>
@@ -54,7 +206,7 @@ export default function ChatModal({ chat, onClose }) {
 
           <div className={styles.headerCenter}>
             <div className={styles.avatar}>
-              <User size={18} color="#0054CB" />
+              <span style={{ fontSize: '18px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
             </div>
             <div>
               <h3 className={styles.name}>{nickname}</h3>
@@ -65,9 +217,75 @@ export default function ChatModal({ chat, onClose }) {
             </div>
           </div>
 
-          <button className={styles.menuBtn}>
-            <MoreVertical size={20} color="#667085" />
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button className={styles.menuBtn} onClick={() => setShowMenu(!showMenu)}>
+              <MoreVertical size={20} color="#667085" />
+            </button>
+
+            {showMenu && (
+              <div style={{
+                position: 'absolute',
+                right: 0,
+                top: 40,
+                background: 'white',
+                borderRadius: 12,
+                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                padding: '8px 0',
+                zIndex: 100,
+                minWidth: 200,
+                border: '1px solid var(--border)'
+              }}>
+                {opponent && (
+                  <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                    <span style={{ fontSize: 32, marginBottom: 4 }}>{opponent.profile_emoji}</span>
+                    <p style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{opponent.nickname}</p>
+                    {opponent.bio && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{opponent.bio}</p>}
+                  </div>
+                )}
+
+                {!isBlocked && chatRoom?.expires_at && (
+                  <button
+                    onClick={handleExtendChat}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: 'var(--text-primary)',
+                      fontWeight: '500'
+                    }}
+                  >
+                    대화 계속하기
+                  </button>
+                )}
+
+                {!isBlocked && (
+                  <button
+                    onClick={() => {
+                      setShowBlockConfirm(true);
+                      setShowMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      textAlign: 'left',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      fontSize: 14,
+                      color: '#ff3b30',
+                      fontWeight: '500'
+                    }}
+                  >
+                    차단하기
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Messages */}
@@ -98,7 +316,7 @@ export default function ChatModal({ chat, onClose }) {
                   <div className={styles.msgAvatarWrapper}>
                     {showAvatar && (
                       <div className={styles.msgAvatar}>
-                        <User size={14} color="#0054CB" />
+                        <span style={{ fontSize: '14px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
                       </div>
                     )}
                   </div>
@@ -116,25 +334,108 @@ export default function ChatModal({ chat, onClose }) {
         </div>
 
         {/* Input */}
-        <div className={styles.inputArea}>
-          <div className={styles.inputContainer}>
-            <input
-              className={styles.input}
-              placeholder="메시지를 입력하세요..."
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && send()}
-            />
-            <button
-              className={styles.sendBtn}
-              onClick={send}
-              disabled={!input.trim()}
-            >
-              <Send size={18} color="white" />
-            </button>
+        {isReadOnly ? (
+          <div style={{
+            padding: '18px 16px',
+            textAlign: 'center',
+            background: 'var(--bg-secondary)',
+            borderTop: '1px solid var(--border)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px'
+          }}>
+            <Info size={16} color="var(--text-muted)" />
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', fontWeight: '600' }}>
+              {isBlocked
+                ? '차단된 대화방입니다. 더 이상 대화를 이어갈 수 없습니다.'
+                : '만료된 대화방입니다. 이전 대화 내용만 열람할 수 있습니다.'
+              }
+            </p>
+          </div>
+        ) : (
+          <div className={styles.inputArea}>
+            <div className={styles.inputContainer}>
+              <input
+                className={styles.input}
+                placeholder="메시지를 입력하세요..."
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.nativeEvent.isComposing && send()}
+              />
+              <button
+                className={styles.sendBtn}
+                onClick={send}
+                disabled={!input.trim()}
+              >
+                <Send size={18} color="white" />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Block Confirmation Modal */}
+      {showBlockConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 700
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            padding: 24,
+            margin: '0 20px',
+            maxWidth: 320,
+            width: '100%',
+            boxShadow: 'var(--shadow-xl)'
+          }}>
+            <h3 style={{ marginBottom: 8, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>정말로 차단하시겠습니까?</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, lineHeight: 1.5 }}>
+              차단하면 더 이상 대화를 이어갈 수 없습니다.
+              이전 대화 내용은 열람할 수 있습니다.
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowBlockConfirm(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleBlock}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#ff3b30',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                차단하기
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
+
