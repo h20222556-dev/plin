@@ -69,8 +69,12 @@ export default function ChatModal({ chat, onClose }) {
 
     if (isDemoMode) return;
 
+    const channelName = `chat_room_${chat.roomId}`;
+    const existingChannel = supabase.channel(channelName);
+    supabase.removeChannel(existingChannel);
+
     const roomChannel = supabase
-      .channel(`chat_room_${chat.roomId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'chat_rooms', filter: `id=eq.${chat.roomId}` },
