@@ -8,6 +8,7 @@ export default function RecordMap({ records, onSelectRecord }) {
   const { focusedRecord } = useRecords();
   const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
+  const [map, setMap] = useState(null);
   const overlaysRef = useRef([]);
   const activeInfoWindowRef = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -63,33 +64,33 @@ export default function RecordMap({ records, onSelectRecord }) {
         level: 5
       };
 
-      const map = new window.kakao.maps.Map(containerRef.current, options);
-      mapInstanceRef.current = map;
+      const newMap = new window.kakao.maps.Map(containerRef.current, options);
+      mapInstanceRef.current = newMap;
+      setMap(newMap);
 
       console.log('[RecordMap] 지도 생성 완료');
 
-      // 지도 크기 강제 재조정
+      // 지도 크기 강제 재조정 및 초기 핀 렌더링에 맞춘 위치 재조정
       setTimeout(() => {
-        map.relayout();
-        if (records.length > 0) {
+        newMap.relayout();
+        if (records && records.length > 0) {
           const validRecords = records.filter(r => r.lat && r.lng);
           if (validRecords.length > 0) {
             const firstRecord = validRecords[0];
-            map.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
+            newMap.setCenter(new window.kakao.maps.LatLng(firstRecord.lat, firstRecord.lng));
           } else {
-            map.setCenter(initialCenter);
+            newMap.setCenter(initialCenter);
           }
         } else {
-          map.setCenter(initialCenter);
+          newMap.setCenter(initialCenter);
         }
-        console.log('[RecordMap] relayout 완료');
-      }, 100);
+        console.log('[RecordMap] relayout 완료 (500ms delay)');
+      }, 500);
     });
   }, [isLoaded]);
 
   // Update map when records list changes
   useEffect(() => {
-    const map = mapInstanceRef.current;
     if (!map || !window.kakao || !window.kakao.maps || !isLoaded) return;
 
     // Clear existing markers/overlays
@@ -99,6 +100,9 @@ export default function RecordMap({ records, onSelectRecord }) {
       activeInfoWindowRef.current.close();
       activeInfoWindowRef.current = null;
     }
+
+    // 데이터가 없거나 로딩 중일 때는 핀을 그리지 않음
+    if (!records || records.length === 0) return;
 
     // Set new markers
     const validRecords = records.filter(r => r.lat && r.lng);
@@ -157,11 +161,10 @@ export default function RecordMap({ records, onSelectRecord }) {
     if (hasCoords && !focusedRecord) {
       map.setBounds(bounds);
     }
-  }, [records, focusedRecord, isLoaded]);
+  }, [records, focusedRecord, isLoaded, map]);
 
   // Listen to focusedRecord changes (e.g. from search panel)
   useEffect(() => {
-    const map = mapInstanceRef.current;
     if (!map || !window.kakao || !window.kakao.maps || !isLoaded) return;
 
     if (focusedRecord && focusedRecord.lat && focusedRecord.lng) {
@@ -188,7 +191,7 @@ export default function RecordMap({ records, onSelectRecord }) {
       infowindow.open(map);
       activeInfoWindowRef.current = infowindow;
     }
-  }, [focusedRecord, isLoaded]);
+  }, [focusedRecord, isLoaded, map]);
 
   // Statistics
   const currentMonth = new Date().getMonth();
