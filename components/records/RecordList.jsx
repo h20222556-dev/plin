@@ -1,8 +1,20 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import styles from './RecordList.module.css';
 
-export default function RecordList({ records, onSelectRecord }) {
+export default function RecordList({ records, onSelectRecord, highlightedId }) {
+  const highlightedRef = useRef(null);
+
+  useEffect(() => {
+    if (highlightedId && highlightedRef.current) {
+      const timer = setTimeout(() => {
+        highlightedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [highlightedId]);
+
   if (records.length === 0) {
     return (
       <div className="empty-state">
@@ -19,7 +31,8 @@ export default function RecordList({ records, onSelectRecord }) {
         {records.map((record, i) => (
           <button
             key={record.id}
-            className={styles.card}
+            ref={record.id === highlightedId ? highlightedRef : null}
+            className={`${styles.card} ${record.id === highlightedId ? styles.cardHighlighted : ''}`}
             onClick={() => onSelectRecord(record)}
           >
             {/* Left: Emotion + Date */}

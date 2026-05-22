@@ -28,7 +28,8 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
   const [activeTab, setActiveTab] = useState(initialTab);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const { addRecord } = useRecords();
+  const [highlightedRecordId, setHighlightedRecordId] = useState(null);
+  const { addRecord, records, setFocusedRecord } = useRecords();
   const { user } = useAuth();
 
   useEffect(() => {
@@ -56,13 +57,24 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
     }
   };
 
+  const handleRecordNavigate = (recordId) => {
+    setHighlightedRecordId(recordId);
+    if (records) {
+      const match = records.find(r => r.id === recordId);
+      if (match) {
+        setFocusedRecord(match);
+      }
+    }
+    setActiveTab('records');
+  };
+
   const renderPage = () => {
     switch (activeTab) {
-      case 'records': return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'records': return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} highlightedRecordId={highlightedRecordId} onClearHighlight={() => setHighlightedRecordId(null)} />;
       case 'concerts': return <ConcertsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
       case 'community': return <CommunityPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
-      case 'profile': return <ProfilePage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} initialSection={initialSection} />;
-      default: return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} />;
+      case 'profile': return <ProfilePage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} initialSection={initialSection} onRecordNavigate={handleRecordNavigate} />;
+      default: return <RecordsPage onNavigate={setActiveTab} onOpenSearch={() => setIsSearchOpen(true)} highlightedRecordId={highlightedRecordId} onClearHighlight={() => setHighlightedRecordId(null)} />;
     }
   };
 

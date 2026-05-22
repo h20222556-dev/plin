@@ -19,7 +19,7 @@ const VIEWS = [
   { id: 'calendar', label: '달력', icon: Calendar },
 ];
 
-export default function RecordsPage({ onNavigate }) {
+export default function RecordsPage({ onNavigate, highlightedRecordId, onClearHighlight }) {
   const { records, loading, deleteRecord, focusedRecord, updateRecord } = useRecords();
   const { user } = useAuth();
   const [view, setView] = useState('map');
@@ -34,6 +34,7 @@ export default function RecordsPage({ onNavigate }) {
       setSelectedRecord(focusedRecord);
     }
   }, [focusedRecord]);
+
 
   const handleRecordSelect = (record) => {
     setSelectedRecord(record);
@@ -121,7 +122,37 @@ export default function RecordsPage({ onNavigate }) {
                     </button>
                   </div>
                 )}
-                <RecordList records={displayedRecords} onRecordSelect={handleRecordSelect} onSelectRecord={handleRecordSelect} />
+                {highlightedRecordId && (
+                  <div style={{
+                    backgroundColor: 'rgba(0, 84, 203, 0.07)',
+                    borderBottom: '1px solid rgba(0, 84, 203, 0.12)',
+                    padding: '10px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '13px',
+                    color: '#0054CB',
+                    fontWeight: 600,
+                  }}>
+                    <span>📍 프로필에서 선택한 기록</span>
+                    <button
+                      onClick={() => { onClearHighlight?.(); setSelectedRecord(null); }}
+                      style={{
+                        background: '#0054CB',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      닫기
+                    </button>
+                  </div>
+                )}
+                <RecordList records={displayedRecords} onRecordSelect={handleRecordSelect} onSelectRecord={handleRecordSelect} highlightedId={highlightedRecordId} />
               </div>
             )}
             {view === 'calendar' && <RecordCalendar records={displayedRecords} onRecordSelect={handleRecordSelect} />}

@@ -11,6 +11,7 @@ import ChatList from './ChatList';
 import ChatModal from './ChatModal';
 import NewPostModal from './NewPostModal';
 import UserProfileModal from './UserProfileModal';
+import { Search, Hash } from 'lucide-react';
 
 const TABS = [
   { id: 'feed', label: '피드' },
@@ -26,6 +27,7 @@ export default function CommunityPage() {
   const [activeChat, setActiveChat] = useState(null); // { roomId, recipientId, recipientNickname, expiresAt }
   const [selectedUser, setSelectedUser] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const pendingChat = sessionStorage.getItem('pendingChatRoom');
@@ -71,6 +73,21 @@ export default function CommunityPage() {
     }
   };
 
+  // Compute filtered posts based on search query
+  const trimmedQuery = searchQuery.trim();
+  const isHashtagSearch = trimmedQuery.startsWith('#');
+  const hashtagTerm = isHashtagSearch ? trimmedQuery.slice(1).toLowerCase() : '';
+
+  const filteredPosts = (posts ?? []).filter(post => {
+    if (!trimmedQuery) return true;
+    if (isHashtagSearch) {
+      // Case-insensitive match against tags array
+      return (post.tags ?? []).some(tag => tag.toLowerCase() === hashtagTerm);
+    }
+    // Plain text search in content
+    return post.content.toLowerCase().includes(trimmedQuery.toLowerCase());
+  });
+
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -96,6 +113,44 @@ export default function CommunityPage() {
             </button>
           ))}
         </div>
+
+        {/* Search bar — only in feed tab */}
+        {activeTab === 'feed' && (
+          <div className={styles.searchContainer}>
+            <div className={styles.searchBar}>
+              {isHashtagSearch ? (
+                <Hash size={16} className={styles.searchIcon} />
+              ) : (
+                <Search size={16} className={styles.searchIcon} />
+              )}
+              <input
+                id="community-search-input"
+                className={styles.searchInput}
+                placeholder="#BTS 또는 키워드 검색"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+              />
+              {searchQuery && (
+                <button
+                  className={styles.searchClearBtn}
+                  onClick={() => setSearchQuery('')}
+                  aria-label="검색 초기화"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            {isHashtagSearch && hashtagTerm && (
+              <div className={styles.hashtagBadge}>
+                <Hash size={12} />
+                <span>{hashtagTerm}</span>
+                <span className={styles.hashtagResultCount}>
+                  {filteredPosts.length}개 결과
+                </span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Feed */}
@@ -103,13 +158,23 @@ export default function CommunityPage() {
         <div className={styles.feed}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>불러오는 중...</div>
-          ) : (posts ?? []).length === 0 ? (
+          ) : filteredPosts.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#667085' }}>
-              아직 작성된 글이 없습니다.<br />첫 번째 글을 남겨보세요! 🎵
+              {trimmedQuery ? (
+                <>
+                  <Search size={36} color="#D0D5DD" style={{ marginBottom: 12 }} />
+                  <p style={{ fontWeight: 600, marginBottom: 4 }}>
+                    {isHashtagSearch ? `#${hashtagTerm}` : `"${trimmedQuery}"`} 검색 결과가 없어요
+                  </p>
+                  <p style={{ fontSize: 13 }}>다른 키워드로 검색해보세요</p>
+                </>
+              ) : (
+                <>아직 작성된 글이 없습니다.<br />첫 번째 글을 남겨보세요! 🎵</>
+              )}
             </div>
           ) : (
             <div className="stagger">
-              {(posts ?? []).map(post => (
+              {filteredPosts.map(post => (
                 <PostCard
                   key={post.id}
                   post={post}
@@ -156,3 +221,4 @@ export default function CommunityPage() {
     </div>
   );
 }
+

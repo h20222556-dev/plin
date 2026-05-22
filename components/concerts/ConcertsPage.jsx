@@ -11,6 +11,23 @@ import UnifiedSearchBar from '@/components/search/UnifiedSearchBar';
 const AddRecordModal = dynamic(() => import('../records/AddRecordModal'), { ssr: false });
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
 
+const SAVED_CONCERTS_KEY = 'plin_saved_concert_ids';
+
+function loadSavedIds() {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(SAVED_CONCERTS_KEY);
+    return raw ? new Set(JSON.parse(raw)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+function persistSavedIds(ids) {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(SAVED_CONCERTS_KEY, JSON.stringify([...ids]));
+}
+
 export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   const { isDemoMode } = useAuth();
   // 데모 모드일 경우 Mock 데이터 사용
@@ -21,7 +38,15 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [recordContext, setRecordContext] = useState(null);
   const [openTicketLinks, setOpenTicketLinks] = useState(null); // holds concert.id for ticketing dropdown
-  
+
+  // Saved concerts — persisted in localStorage
+  const [savedIds, setSavedIds] = useState(() => loadSavedIds());
+
+  // Sync savedIds → localStorage whenever it changes
+  useEffect(() => {
+    persistSavedIds(savedIds);
+  }, [savedIds]);
+
   // Consume query from unified search modal
   useEffect(() => {
     if (typeof window !== 'undefined' && window.__searchQuery) {
@@ -33,14 +58,25 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   // Supabase 기록 훅
   const { addRecord } = useRecords();
 
-  const toggleBookmark = (id) => {
-    setConcerts(prev => prev.map(c => c.id === id ? { ...c, isBookmarked: !c.isBookmarked } : c));
+  const toggleSave = (id) => {
+    setSavedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
   };
 
-  const filtered = concerts.filter(c => {
+  // Keep concerts state in sync with savedIds (for detail modal bookmark display)
+  const concertsWithSaved = concerts.map(c => ({ ...c, isBookmarked: savedIds.has(c.id) }));
+
+  const filtered = concertsWithSaved.filter(c => {
     const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.artist.toLowerCase().includes(search.toLowerCase());
     const matchFilter = activeFilter === 'all' || 
-      (activeFilter === 'bookmarked' && c.isBookmarked) ||
+      (activeFilter === 'saved' && savedIds.has(c.id)) ||
       (activeFilter === 'upcoming' && c.status === 'upcoming') ||
       (activeFilter === 'soldout' && c.status === 'sold_out');
     return matchSearch && matchFilter;
@@ -56,6 +92,8 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
       console.error(err);
     }
   };
+
+  const savedCount = savedIds.size;
 
   return (
     <div className={styles.page}>
@@ -112,7 +150,7 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
           {[
             { id: 'all', label: '전체' },
             { id: 'upcoming', label: '예정' },
-            { id: 'bookmarked', label: '찜한 공연' },
+            { id: 'saved', label: `저장됨${savedCount > 0 ? ` ${savedCount}` : ''}` },
             { id: 'soldout', label: '매진' },
           ].map(f => (
             <button
@@ -120,10 +158,19 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
               className={`chip ${activeFilter === f.id ? 'active' : ''}`}
               onClick={() => setActiveFilter(f.id)}
             >
+              {f.id === 'saved' && <Bookmark size={12} style={{ marginRight: 4 }} />}
               {f.label}
             </button>
           ))}
         </div>
+
+        {/* Saved empty hint */}
+        {activeFilter === 'saved' && savedCount === 0 && (
+          <div className={styles.savedEmptyHint}>
+            <Bookmark size={16} color="#98A2B3" style={{ marginRight: 6 }} />
+            <span>북마크 버튼을 눌러 공연을 저장해보세요</span>
+          </div>
+        )}
       </div>
 
       {/* Concert List */}
@@ -137,13 +184,16 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
                   {concert.status === 'sold_out' ? '매진' : '예정'}
                 </span>
                 <button
-                  className={styles.bookmarkBtn}
-                  onClick={() => toggleBookmark(concert.id)}
+                  id={`save-btn-${concert.id}`}
+                  className={`${styles.bookmarkBtn} ${savedIds.has(concert.id) ? styles.bookmarkBtnActive : ''}`}
+                  onClick={() => toggleSave(concert.id)}
+                  aria-label={savedIds.has(concert.id) ? '저장 취소' : '저장'}
+                  title={savedIds.has(concert.id) ? '저장 취소' : '공연 저장'}
                 >
                   <Bookmark 
                     size={24} 
-                    fill={concert.isBookmarked ? '#0054CB' : 'none'} 
-                    color={concert.isBookmarked ? '#0054CB' : '#98A2B3'} 
+                    fill={savedIds.has(concert.id) ? '#0054CB' : 'none'} 
+                    color={savedIds.has(concert.id) ? '#0054CB' : '#98A2B3'} 
                   />
                 </button>
               </div>
@@ -258,9 +308,19 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
 
         {filtered.length === 0 && (
           <div className="empty-state">
-            <Search size={48} color="#98A2B3" />
-            <h3>공연을 찾을 수 없어요</h3>
-            <p>데이터가 존재하지 않습니다</p>
+            {activeFilter === 'saved' ? (
+              <>
+                <Bookmark size={48} color="#D0D5DD" />
+                <h3>저장된 공연이 없어요</h3>
+                <p>공연 카드의 북마크 버튼을 눌러 저장해보세요</p>
+              </>
+            ) : (
+              <>
+                <Search size={48} color="#98A2B3" />
+                <h3>공연을 찾을 수 없어요</h3>
+                <p>데이터가 존재하지 않습니다</p>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -269,7 +329,7 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
         <ConcertDetailModal
           concert={selectedConcert}
           onClose={() => setSelectedConcert(null)}
-          onBookmark={() => toggleBookmark(selectedConcert.id)}
+          onBookmark={() => toggleSave(selectedConcert.id)}
           onNavigate={onNavigate}
           onAddRecord={(concert) => {
             setRecordContext(concert);

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { emotionOptions } from '@/lib/mockData';
 import { useRecords } from '@/lib/hooks/useRecords';
-import { Music, Check } from 'lucide-react';
+import { Music, Check, Hash, X } from 'lucide-react';
 import styles from './NewPostModal.module.css';
 
 export default function NewPostModal({ onClose, onPost }) {
@@ -10,18 +10,46 @@ export default function NewPostModal({ onClose, onPost }) {
   const [selectedPerfId, setSelectedPerfId] = useState(null);
   const [emotion, setEmotion] = useState('');
   const [isPosting, setIsPosting] = useState(false);
+  const [customTags, setCustomTags] = useState([]);
+  const [tagInput, setTagInput] = useState('');
+  const tagInputRef = useRef(null);
+
+  const addTag = (raw) => {
+    const cleaned = raw.trim().replace(/^#+/, '');
+    if (!cleaned) return;
+    if (!customTags.includes(cleaned)) {
+      setCustomTags(prev => [...prev, cleaned]);
+    }
+    setTagInput('');
+  };
+
+  const handleTagKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTag(tagInput);
+    } else if (e.key === 'Backspace' && !tagInput && customTags.length > 0) {
+      setCustomTags(prev => prev.slice(0, -1));
+    }
+  };
+
+  const removeTag = (tag) => {
+    setCustomTags(prev => prev.filter(t => t !== tag));
+  };
 
   const handlePost = async () => {
     if (!content.trim()) return;
     setIsPosting(true);
     try {
       const selectedPerf = records.find(r => r.id === selectedPerfId);
+      const perfTags = selectedPerf ? [selectedPerf.concertName] : [];
+      // Merge concert tags + custom tags, deduplicated
+      const mergedTags = [...new Set([...perfTags, ...customTags])];
       await onPost({
         content: content.trim(),
         performanceId: selectedPerfId,
         concert: selectedPerf?.concertName || '',
         emotion,
-        tags: selectedPerf ? [selectedPerf.concertName] : [],
+        tags: mergedTags,
       });
     } finally {
       setIsPosting(false);
@@ -75,6 +103,41 @@ export default function NewPostModal({ onClose, onPost }) {
             {records.length === 0 && (
               <p className={styles.emptyNote}>작성된 공연 기록이 없습니다.</p>
             )}
+          </div>
+
+          {/* Hashtag Input */}
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>해시태그</label>
+            <div
+              className={styles.hashtagInputBox}
+              onClick={() => tagInputRef.current?.focus()}
+            >
+              {customTags.map(tag => (
+                <span key={tag} className={styles.hashtagChip}>
+                  <span className={styles.hashSymbol}>#</span>{tag}
+                  <button
+                    className={styles.hashtagRemoveBtn}
+                    onClick={e => { e.stopPropagation(); removeTag(tag); }}
+                    aria-label={`태그 ${tag} 삭제`}
+                  >
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+              <input
+                ref={tagInputRef}
+                className={styles.hashtagTextInput}
+                value={tagInput}
+                onChange={e => setTagInput(e.target.value)}
+                onKeyDown={handleTagKeyDown}
+                onBlur={() => addTag(tagInput)}
+                placeholder={customTags.length === 0 ? '#BTS #concert 입력 후 Enter' : ''}
+              />
+            </div>
+            <p className={styles.hashtagHint}>
+              <Hash size={11} style={{ marginRight: 3 }} />
+              Enter 또는 쉼표로 태그를 추가하세요
+            </p>
           </div>
 
           <div className={styles.fieldGroup}>
