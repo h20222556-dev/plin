@@ -67,11 +67,11 @@ export default function RecordsPage({ onNavigate }) {
         ) : (
           <>
             {view === 'map' && (
-              <div style={{ width: '100%', height: '500px' }}>
+              <div className={styles.mapContainer}>
                 <RecordMap records={records} onSelectRecord={handleRecordSelect} />
               </div>
             )}
-            {view === 'list' && <RecordList records={records} onRecordSelect={handleRecordSelect} />}
+            {view === 'list' && <RecordList records={records} onRecordSelect={handleRecordSelect} onSelectRecord={handleRecordSelect} />}
             {view === 'calendar' && <RecordCalendar records={records} onRecordSelect={handleRecordSelect} />}
           </>
         )}

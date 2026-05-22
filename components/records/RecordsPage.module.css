@@ -1,19 +1,21 @@
 .page {
+  --header-height: 142px;
   display: flex;
   flex-direction: column;
-  min-height: 100%;
   height: 100%;
   background-color: var(--bg-primary);
-  padding-bottom: var(--padding-bottom);
+  overflow: hidden;
 }
 
 .header {
+  height: var(--header-height);
   padding: 24px var(--margin-mobile);
   display: flex;
   flex-direction: column;
   gap: 20px;
   background-color: var(--bg-primary);
   border-bottom: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
 .headerTop {
@@ -58,6 +60,8 @@
   padding: 4px;
   border-radius: var(--radius-md);
   gap: 4px;
+  flex-shrink: 0;
+  overflow: visible;
 }
 
 .viewTab {
@@ -84,4 +88,32 @@
   flex: 1;
   position: relative;
   overflow: hidden; /* map and list handle their own scroll */
+  height: calc(100dvh - 56px - var(--header-height) - 84px);
+}
+
+.mapContainer {
+  width: 100%;
+  height: calc(100dvh - 56px - var(--header-height) - 84px);
+}
+
+@media (max-width: 480px) {
+  .page {
+    --header-height: 110px;
+  }
+  .header {
+    padding: 12px var(--margin-mobile);
+    gap: 12px;
+  }
+  .title {
+    font-size: 20px;
+  }
+  .subtitle {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+  .viewTab {
+    padding: 6px 8px;
+    font-size: 13px;
+    gap: 4px;
+  }
 }

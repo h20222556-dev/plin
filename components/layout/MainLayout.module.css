@@ -84,10 +84,8 @@
 
 .main {
   flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
-  padding-bottom: 80px; /* Protect content from bottom tab bar overlap */
   -webkit-overflow-scrolling: touch;
 }
 
