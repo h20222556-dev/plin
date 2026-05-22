@@ -1,5 +1,4 @@
 .page {
-  --header-height: 142px;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -8,11 +7,11 @@
 }
 
 .header {
-  height: var(--header-height);
-  padding: 24px var(--margin-mobile);
+  flex-shrink: 0;
+  padding: 20px var(--margin-mobile) 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   background-color: var(--bg-primary);
   border-bottom: 1px solid var(--border);
   box-sizing: border-box;
@@ -46,6 +45,7 @@
   border-top: 1px solid rgba(0, 84, 203, 0.1);
   position: relative;
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .footerBanner strong {
@@ -76,6 +76,7 @@
   color: var(--text-muted);
   border-radius: var(--radius-sm);
   transition: all var(--transition-base);
+  flex-shrink: 0;
 }
 
 .viewTabActive {
@@ -88,18 +89,17 @@
   flex: 1;
   position: relative;
   overflow: hidden; /* map and list handle their own scroll */
-  height: calc(100dvh - 56px - var(--header-height) - 84px);
+  display: flex;
+  flex-direction: column;
 }
 
 .mapContainer {
   width: 100%;
-  height: calc(100dvh - 56px - var(--header-height) - 84px);
+  flex: 1;
+  height: 100%;
 }
 
 @media (max-width: 480px) {
-  .page {
-    --header-height: 110px;
-  }
   .header {
     padding: 12px var(--margin-mobile);
     gap: 12px;
