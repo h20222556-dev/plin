@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
@@ -29,43 +29,44 @@ export default function ChatModal({ chat, onClose }) {
   const [chatRoom, setChatRoom] = useState(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
 
-  useEffect(() => {
-    const fetchChatRoom = async () => {
-      if (isDemoMode) {
-        const { MOCK_CHATS } = require('@/lib/mockData');
-        const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
-        if (mockRoom) {
-          setChatRoom({
-            id: mockRoom.roomId,
-            user_a_id: '00000000-0000-0000-0000-000000000001',
-            user_b_id: mockRoom.recipientId,
-            expires_at: mockRoom.expiresAt,
-            is_blocked: mockRoom.isBlocked ?? false,
-            blocked_by: mockRoom.blockedBy ?? null,
-            is_extended: mockRoom.isExtended ?? false,
-          });
-        }
-        setIsLoadingRoom(false);
-        return;
+  const refetchChatRoom = useCallback(async () => {
+    if (isDemoMode) {
+      const { MOCK_CHATS } = require('@/lib/mockData');
+      const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
+      if (mockRoom) {
+        const data = {
+          id: mockRoom.roomId,
+          user_a_id: '00000000-0000-0000-0000-000000000001',
+          user_b_id: mockRoom.recipientId,
+          expires_at: mockRoom.expiresAt,
+          is_blocked: mockRoom.isBlocked ?? false,
+          blocked_by: mockRoom.blockedBy ?? null,
+          is_extended: mockRoom.isExtended ?? false,
+        };
+        setChatRoom(data);
       }
-
-      const { data, error } = await supabase
-        .from('chat_rooms')
-        .select('*')
-        .eq('id', chat.roomId)
-        .single();
-
-      if (error) {
-        console.error('채팅방 조회 실패:', error.message);
-        setIsLoadingRoom(false);
-        return;
-      }
-
-      setChatRoom(data);
       setIsLoadingRoom(false);
-    };
+      return;
+    }
 
-    fetchChatRoom();
+    const { data, error } = await supabase
+      .from('chat_rooms')
+      .select('*')
+      .eq('id', chat.roomId)
+      .single();
+
+    if (error) {
+      console.error('채팅방 조회 실패:', error.message);
+      setIsLoadingRoom(false);
+      return;
+    }
+
+    setChatRoom(data);
+    setIsLoadingRoom(false);
+  }, [chat.roomId, isDemoMode]);
+
+  useEffect(() => {
+    refetchChatRoom();
 
     if (isDemoMode) return;
 
@@ -88,7 +89,7 @@ export default function ChatModal({ chat, onClose }) {
     return () => {
       supabase.removeChannel(roomChannel);
     };
-  }, [chat.roomId, isDemoMode]);
+  }, [chat.roomId, isDemoMode, refetchChatRoom]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -160,7 +161,8 @@ export default function ChatModal({ chat, onClose }) {
 
   const handleExtendChat = async () => {
     if (isDemoMode) {
-      setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
+      const data = chatRoom ? { ...chatRoom, expires_at: null, is_extended: true } : null;
+      setChatRoom(data);
       setShowMenu(false);
       alert('대화가 계속 이어집니다! (데모 모드)');
       return;
@@ -181,15 +183,7 @@ export default function ChatModal({ chat, onClose }) {
     }
 
     // DB에서 최신 상태 다시 불러오기
-    const { data: updatedRoom } = await supabase
-      .from('chat_rooms')
-      .select('*')
-      .eq('id', chat.roomId)
-      .single();
-
-    if (updatedRoom) {
-      setChatRoom(updatedRoom);
-    }
+    await refetchChatRoom();
     setShowMenu(false);
     alert('대화가 계속 이어집니다!');
   };
@@ -198,7 +192,8 @@ export default function ChatModal({ chat, onClose }) {
     if (!opponent) return;
 
     if (isDemoMode) {
-      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: user.id } : prev);
+      const data = chatRoom ? { ...chatRoom, is_blocked: true, blocked_by: user?.id } : null;
+      setChatRoom(data);
       setShowBlockConfirm(false);
       alert('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다. (데모 모드)');
       return;
@@ -236,15 +231,7 @@ export default function ChatModal({ chat, onClose }) {
       }
 
       // DB에서 최신 상태 다시 불러오기
-      const { data: updatedRoom } = await supabase
-        .from('chat_rooms')
-        .select('*')
-        .eq('id', chat.roomId)
-        .single();
-
-      if (updatedRoom) {
-        setChatRoom(updatedRoom);
-      }
+      await refetchChatRoom();
       setShowBlockConfirm(false);
       setShowMenu(false);
       alert('차단되었습니다.');
@@ -258,8 +245,10 @@ export default function ChatModal({ chat, onClose }) {
     ? new Date(chatRoom.expires_at) < new Date()
     : false;
 
-  const isBlocked = chatRoom?.is_blocked ?? false;
+  const isBlocked = chatRoom?.is_blocked === true;
   const isReadOnly = isExpired || isBlocked;
+
+
 
   // 대화 계속하기 버튼 표시 조건 수정
   // 만료되었거나 만료 시간이 있는 경우 모두 표시 (차단된 경우 제외)
@@ -378,7 +367,7 @@ export default function ChatModal({ chat, onClose }) {
 
         {/* Messages */}
         <div className={styles.messages}>
-          {!isExpired && !isBlocked && (
+          {!isExpired && !isBlocked && chatRoom?.expires_at && (
             <div className={styles.ephemeralNotice}>
               <Info size={14} color="#0054CB" style={{ flexShrink: 0 }} />
               <span>이 대화는 마지막 메시지로부터 3일 후 자동 삭제됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
@@ -436,8 +425,8 @@ export default function ChatModal({ chat, onClose }) {
                 차단된 대화방입니다. 더 이상 대화를 이어갈 수 없습니다.
               </p>
             ) : (
-              <div>
-                <p style={{ fontSize: 14, color: '#888', marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                <p style={{ fontSize: 14, color: '#888' }}>
                   만료된 대화방입니다. 이전 대화 내용만 열람할 수 있습니다.
                 </p>
                 <button
