@@ -1,7 +1,8 @@
 .calendar {
   height: 100%;
   overflow-y: auto;
-  padding: 16px;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px 80px;
   display: flex;
   flex-direction: column;
   gap: 16px;

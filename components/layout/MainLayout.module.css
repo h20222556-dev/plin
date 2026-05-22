@@ -1,9 +1,9 @@
 .layout {
   display: flex;
   flex-direction: column;
-  height: 100%;        /* fills .app-shell which is 100dvh */
+  height: 100dvh;      /* fills .app-shell which is 100dvh */
   background-color: var(--bg-primary);
-  overflow: hidden;
+  overflow: hidden;    /* clip children; .main handles its own scroll */
 }
 
 .topHeader {
@@ -85,8 +85,10 @@
 .main {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
-  padding-bottom: 32px; /* Protect content from FAB overlap */
+  padding-bottom: 80px; /* Protect content from bottom tab bar overlap */
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabBar {
