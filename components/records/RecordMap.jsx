@@ -209,8 +209,7 @@ export default function RecordMap({ records, onSelectRecord }) {
         className={styles.map}
         style={{
           width: '100%',
-          height: '500px',
-          minHeight: '300px',
+          height: '100%',
           display: 'block',
           background: '#e0e0e0'
         }}
