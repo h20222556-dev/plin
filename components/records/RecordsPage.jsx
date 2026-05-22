@@ -11,6 +11,7 @@ import RecordBottomSheet from './RecordBottomSheet';
 import { Map as MapIcon, List, Calendar } from 'lucide-react';
 
 const RecordMap = dynamic(() => import('./RecordMap'), { ssr: false, loading: () => <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100%',color:'#667085'}}>지도를 불러오는 중...</div> });
+const AddRecordModal = dynamic(() => import('./AddRecordModal'), { ssr: false });
 
 const VIEWS = [
   { id: 'map', label: '지도', icon: MapIcon },
@@ -19,10 +20,12 @@ const VIEWS = [
 ];
 
 export default function RecordsPage({ onNavigate }) {
-  const { records, loading, deleteRecord, focusedRecord } = useRecords();
+  const { records, loading, deleteRecord, focusedRecord, updateRecord } = useRecords();
   const { user } = useAuth();
   const [view, setView] = useState('map');
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [filterOnlyThisMonth, setFilterOnlyThisMonth] = useState(false);
 
   // Listen to focusedRecord updates from unified search
   useEffect(() => {
@@ -36,6 +39,15 @@ export default function RecordsPage({ onNavigate }) {
     setSelectedRecord(record);
   };
 
+  const currentMonthRecords = records.filter(r => {
+    if (!r.date) return false;
+    const d = new Date(r.date);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+
+  const displayedRecords = filterOnlyThisMonth ? currentMonthRecords : records;
+
   return (
     <div className={styles.page}>
       {/* Header */}
@@ -43,7 +55,6 @@ export default function RecordsPage({ onNavigate }) {
         <div className={styles.headerTop}>
           <div>
             <h1 className={styles.title}>나의 공연 기록</h1>
-            <p className={styles.subtitle}>모든 순간을 지도로 남겨보세요</p>
           </div>
         </div>
 
@@ -68,11 +79,52 @@ export default function RecordsPage({ onNavigate }) {
           <>
             {view === 'map' && (
               <div className={styles.mapContainer}>
-                <RecordMap records={records} onSelectRecord={handleRecordSelect} />
+                <RecordMap 
+                  records={records} 
+                  onSelectRecord={handleRecordSelect} 
+                  onMonthlyStatsClick={() => {
+                    setFilterOnlyThisMonth(true);
+                    setView('list');
+                  }}
+                />
               </div>
             )}
-            {view === 'list' && <RecordList records={records} onRecordSelect={handleRecordSelect} onSelectRecord={handleRecordSelect} />}
-            {view === 'calendar' && <RecordCalendar records={records} onRecordSelect={handleRecordSelect} />}
+            {view === 'list' && (
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden', flex: 1 }}>
+                {filterOnlyThisMonth && (
+                  <div style={{
+                    backgroundColor: 'rgba(0, 84, 203, 0.05)',
+                    borderBottom: '1px solid rgba(0, 84, 203, 0.1)',
+                    padding: '12px 16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    fontSize: '13px',
+                    color: '#0054CB',
+                    fontWeight: 600,
+                  }}>
+                    <span>이번 달 기록만 필터링해서 보고 있습니다 ({currentMonthRecords.length}개)</span>
+                    <button 
+                      onClick={() => setFilterOnlyThisMonth(false)}
+                      style={{
+                        background: '#0054CB',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        padding: '4px 8px',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                      }}
+                    >
+                      필터 해제
+                    </button>
+                  </div>
+                )}
+                <RecordList records={displayedRecords} onRecordSelect={handleRecordSelect} onSelectRecord={handleRecordSelect} />
+              </div>
+            )}
+            {view === 'calendar' && <RecordCalendar records={displayedRecords} onRecordSelect={handleRecordSelect} />}
           </>
         )}
       </div>
@@ -80,12 +132,7 @@ export default function RecordsPage({ onNavigate }) {
       {/* Footer Banner - 목록/달력 뷰에서만 표시 (지도는 자체 오버레이 사용) */}
       {view !== 'map' && (
         <div className={styles.footerBanner}>
-          <p>이번 달 기록 <strong>{
-            records.filter(r => {
-              const d = new Date(r.date);
-              return d.getMonth() === new Date().getMonth() && d.getFullYear() === new Date().getFullYear();
-            }).length
-          }개</strong></p>
+          <p>이번 달 기록 <strong>{currentMonthRecords.length}개</strong></p>
         </div>
       )}
 
@@ -94,7 +141,20 @@ export default function RecordsPage({ onNavigate }) {
         record={selectedRecord} 
         onClose={() => setSelectedRecord(null)} 
         onDelete={selectedRecord?.userId === user?.id ? deleteRecord : null}
+        onEdit={selectedRecord?.userId === user?.id ? (record) => setEditingRecord(record) : null}
       />
+
+      {/* Edit Record Modal */}
+      {editingRecord && (
+        <AddRecordModal
+          initialData={editingRecord}
+          onClose={() => setEditingRecord(null)}
+          onSave={async (form) => {
+            await updateRecord(editingRecord.id, form);
+            setSelectedRecord(null); // close bottom sheet
+          }}
+        />
+      )}
     </div>
   );
 }

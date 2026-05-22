@@ -39,17 +39,18 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [isSaving, setIsSaving] = useState(false);
 
   const [form, setForm] = useState({
-    photos: [],
-    concertName: initialData?.name || '',
+    photos: initialData?.photos || [],
+    concertName: initialData?.concertName || initialData?.name || '',
     artist: initialData?.artist || '',
     date: initialData?.date || new Date().toISOString().split('T')[0],
     venue: initialData?.venue || '',
-    weather: 'sunny',
-    memo: '',
-    setlist: [],
-    isPublic: true,
-    tags: initialData?.genre || [],
-    pinIcon: 'music',
+    weather: initialData?.weather || 'sunny',
+    memo: initialData?.memo || '',
+    seat: initialData?.seat || '',
+    setlist: initialData?.setlist || [],
+    isPublic: initialData?.isPublic ?? true,
+    tags: initialData?.tags || initialData?.genre || [],
+    pinIcon: initialData?.pinIcon || 'music',
     lat: initialData?.lat || null,
     lng: initialData?.lng || null
   });
@@ -230,6 +231,16 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     <MapIcon size={20} color="#0054CB" />
                   </button>
                 </div>
+              </div>
+
+              <div className={styles.fieldGroup}>
+                <label className={styles.label}>좌석 / 구역</label>
+                <input 
+                  className={styles.input} 
+                  placeholder="예: 1층 B구역 15열 5번" 
+                  value={form.seat}
+                  onChange={(e) => set('seat', e.target.value)}
+                />
               </div>
             </div>
           )}

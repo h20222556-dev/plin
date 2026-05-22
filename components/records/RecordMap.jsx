@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './RecordMap.module.css';
 import { useRecords } from '@/lib/hooks/useRecords';
 
-export default function RecordMap({ records, onSelectRecord }) {
+export default function RecordMap({ records, onSelectRecord, onMonthlyStatsClick }) {
   const { focusedRecord } = useRecords();
   const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -215,15 +215,8 @@ export default function RecordMap({ records, onSelectRecord }) {
         }}
       />
 
-      {/* Overlays */}
-      <div className={styles.mapOverlayTop}>
-        <div className={styles.mapStats}>
-          <span>📍 {records.length}개 공연</span>
-        </div>
-      </div>
-
       <div className={styles.mapOverlayBottom}>
-        <div className={styles.monthlyStats}>
+        <div className={styles.monthlyStats} onClick={onMonthlyStatsClick}>
           이번 달 기록 <strong>{monthlyRecords.length}개</strong>
         </div>
       </div>
