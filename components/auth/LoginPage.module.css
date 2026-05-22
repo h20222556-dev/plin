@@ -1,12 +1,15 @@
 .container {
-  min-height: 100vh;
+  min-height: 100dvh;
+  height: auto;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: var(--spacing-xl) var(--margin-mobile);
+  justify-content: flex-start;
+  padding: 32px var(--margin-mobile) 24px;
   background-color: var(--bg-primary);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
 .content {
@@ -19,35 +22,36 @@
 
 .logoArea {
   text-align: center;
-  margin-bottom: 48px;
+  margin-bottom: 24px;
+  margin-top: 16px;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .logoCircle {
-  width: 96px;
-  height: 96px;
+  width: 72px;
+  height: 72px;
   background: var(--gradient-brand, linear-gradient(135deg, #0054CB, #337BE2));
   border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   box-shadow: var(--shadow-lg);
 }
 
 .logoText {
-  font-size: 40px;
+  font-size: 32px;
   font-weight: 900;
   color: var(--primary);
   letter-spacing: -1.5px;
 }
 
 .tagline {
-  font-size: 16px;
+  font-size: 14px;
   color: var(--text-secondary);
-  margin-top: 12px;
+  margin-top: 8px;
   line-height: 1.5;
   font-weight: 500;
 }
@@ -56,10 +60,11 @@
   background: white;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 32px 24px;
+  padding: 24px 20px;
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
+  margin-bottom: 16px;
 }
 
 .form {
@@ -76,7 +81,8 @@
   background-color: var(--bg-surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  padding: 12px 16px;
+  padding: 0 16px;
+  height: 48px;  /* min 44px touch target */
   transition: all var(--transition-fast);
 }
 
@@ -98,7 +104,8 @@
 .submitBtn {
   margin-top: 8px;
   width: 100%;
-  padding: 14px;
+  min-height: 48px;  /* min 44px touch target */
+  padding: 12px;
   background-color: var(--primary);
   color: white;
   border-radius: var(--radius-md);
@@ -120,7 +127,7 @@
   display: flex;
   align-items: center;
   text-align: center;
-  margin: 24px 0;
+  margin: 16px 0;
   color: var(--text-muted);
 }
 
@@ -138,7 +145,7 @@
 }
 
 .toggleText {
-  margin-top: 24px;
+  margin-top: 16px;
   text-align: center;
   font-size: 14px;
   color: var(--text-secondary);
@@ -181,7 +188,8 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 14px;
+  min-height: 48px;  /* min 44px touch target */
+  padding: 12px;
   background-color: white;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -204,9 +212,10 @@
 
 .terms {
   text-align: center;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-muted);
-  margin-top: 32px;
+  margin-top: 16px;
+  margin-bottom: 24px;
   line-height: 1.6;
 }
 
@@ -218,7 +227,8 @@
 
 .demoBtn {
   width: 100%;
-  padding: 12px;
+  min-height: 44px;  /* min 44px touch target */
+  padding: 10px;
   font-size: 14px;
   font-weight: 500;
   color: var(--text-muted);

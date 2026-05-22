@@ -1,6 +1,7 @@
 .page {
   display: flex;
   flex-direction: column;
+  min-height: 100%;
   height: 100%;
   background-color: var(--bg-primary);
   padding-bottom: var(--padding-bottom);
@@ -82,4 +83,5 @@
 .content {
   flex: 1;
   position: relative;
+  overflow: hidden; /* map and list handle their own scroll */
 }

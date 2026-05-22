@@ -89,10 +89,12 @@ body {
 .app-shell {
   width: 100%;
   max-width: 430px;          /* iPhone 14 Pro Max width */
+  min-height: 100dvh;
   height: 100dvh;
   background-color: var(--bg-primary);
   position: relative;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 
   /* Visible on desktop: card shadow around the phone frame */
   box-shadow: 0 0 0 1px rgba(0,0,0,0.07),
@@ -255,8 +257,9 @@ input, textarea, select {
 .page-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100dvh;
+  height: auto;
+  overflow: visible;
 }
 
 /* Scrollable content area */
