@@ -96,7 +96,7 @@
 .perfActive {
   background: var(--gradient-brand-soft);
   border-color: var(--border-active);
-  color: var(--brand-primary);
+  color: var(--primary);
 }
 
 .perfInfo {
@@ -124,4 +124,76 @@
   font-size: 12px;
   color: var(--text-muted);
   font-style: italic;
+}
+
+/* Hashtag Input */
+.hashtagInputBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: text;
+  min-height: 44px;
+  transition: border-color var(--transition-fast);
+}
+.hashtagInputBox:focus-within {
+  border-color: var(--border-active);
+}
+
+.hashtagChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  background: var(--gradient-brand-soft);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.hashSymbol {
+  opacity: 0.7;
+}
+
+.hashtagRemoveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(0, 84, 203, 0.15);
+  color: var(--primary);
+  flex-shrink: 0;
+  transition: background var(--transition-fast);
+}
+.hashtagRemoveBtn:hover {
+  background: rgba(0, 84, 203, 0.3);
+}
+
+.hashtagTextInput {
+  flex: 1;
+  min-width: 120px;
+  background: none;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: var(--text-primary);
+}
+.hashtagTextInput::placeholder {
+  color: var(--text-placeholder);
+}
+
+.hashtagHint {
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
 }

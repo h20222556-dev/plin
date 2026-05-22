@@ -246,9 +246,28 @@
   gap: 12px;
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
+  width: 100%;
+  text-align: left;
+  background: none;
 }
 .recentRecord:last-child { border-bottom: none; }
 
+.recentRecordClickable {
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border-bottom: none;
+  border: 1px solid transparent;
+  transition: all var(--transition-fast);
+}
+.recentRecordClickable:hover {
+  background: var(--bg-elevated);
+  border-color: var(--border);
+}
+.recentRecordClickable:active {
+  background: var(--bg-surface);
+  transform: scale(0.98);
+}
 .recentInfo { flex: 1; }
 /* Toggle Switch */
 .switch {

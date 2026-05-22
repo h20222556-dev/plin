@@ -108,6 +108,28 @@
 
 .bookmarkBtn {
   font-size: 20px;
+  transition: transform var(--transition-fast);
+}
+.bookmarkBtn:active {
+  transform: scale(0.85);
+}
+.bookmarkBtnActive {
+  /* visual accent when saved */
+  filter: drop-shadow(0 0 4px rgba(0, 84, 203, 0.35));
+}
+
+/* Saved empty hint */
+.savedEmptyHint {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-elevated);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  animation: fadeIn 0.2s ease-out;
 }
 
 .cardMain {

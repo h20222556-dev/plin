@@ -7,7 +7,7 @@ import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ProfilePage.module.css';
 import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight } from 'lucide-react';
 
-export default function ProfilePage({ initialSection = 'profile' }) {
+export default function ProfilePage({ initialSection = 'profile', onRecordNavigate }) {
   const auth = useAuth();
   const user = auth?.user ?? null;
   const logout = auth?.logout ?? (() => {});
@@ -385,8 +385,16 @@ export default function ProfilePage({ initialSection = 'profile' }) {
             {/* Recent Records */}
             <div className={styles.section}>
               <h3 className={styles.sectionTitle}>최근 기록</h3>
+              {records.length === 0 && (
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>아직 기록이 없습니다.</p>
+              )}
               {records.slice(0, 3).map(r => (
-                <div key={r.id} className={styles.recentRecord}>
+                <button
+                  key={r.id}
+                  className={`${styles.recentRecord} ${styles.recentRecordClickable}`}
+                  onClick={() => onRecordNavigate?.(r.id)}
+                  title="지도에서 보기"
+                >
                   <div className={styles.recentInfo}>
                     <p className={styles.recentName}>{r.concertName}</p>
                     <p className={styles.recentDate}>{r.date}</p>
@@ -397,7 +405,8 @@ export default function ProfilePage({ initialSection = 'profile' }) {
                       {r.isPublic ? '공개' : '비공개'}
                     </span>
                   </div>
-                </div>
+                  <ChevronRight size={16} color="#667085" style={{ flexShrink: 0 }} />
+                </button>
               ))}
             </div>
           </div>
