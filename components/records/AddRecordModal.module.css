@@ -1,11 +1,25 @@
 .overlay {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background-color: var(--bg-primary); /* Full screen on mobile */
+  background-color: rgba(0, 0, 0, 0.5); /* 어두운 오버레이 */
   z-index: 2000;
   display: flex;
   flex-direction: column;
+  justify-content: flex-end; /* 모바일: 아래에 밀착 */
+  align-items: center;
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  background-color: #FFFFFF; /* 흰색 배경 */
+  width: 100%;
+  height: 100dvh; /* 모바일: 100dvh */
+  border-radius: 0px; /* 모바일: border-radius 0px */
+  box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
   animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
 }
 
 @keyframes slideUp {
@@ -13,31 +27,34 @@
   to { transform: translateY(0); }
 }
 
-@media (min-width: 480px) {
+/* 데스크탑 (min-width: 769px) */
+@media (min-width: 769px) {
   .overlay {
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 24px;
-    align-items: center;
-    justify-content: center;
+    justify-content: center; /* 중앙 정렬 */
+  }
+
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    height: auto;
+    max-height: 85vh;
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    animation: fadeInScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
-.modal {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  background-color: var(--bg-primary);
-  width: 100%;
-}
-
-@media (min-width: 480px) {
-  .modal {
-    flex: none;
-    height: 80vh;
-    max-width: 430px;
-    border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-xl);
-    overflow: hidden;
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
   }
 }
 
@@ -45,10 +62,23 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px var(--margin-mobile);
-  background-color: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  padding: 16px 20px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid var(--border); /* 헤더 아래 구분선 */
   z-index: 10;
+}
+
+.headerCenter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.headerTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .iconBtn {
@@ -94,7 +124,7 @@
 }
 
 .stepContainer {
-  padding: 24px var(--margin-mobile);
+  padding: 24px 48px;
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -629,4 +659,83 @@ input:checked + .slider:before {
 
 .confirmBtn:not(:disabled):active {
   transform: scale(0.98);
+}
+
+.addBtnDisabled {
+  font-size: 15px;
+  font-weight: 700;
+  color: #999999 !important;
+  pointer-events: none;
+  opacity: 0.4;
+  padding: 8px 0;
+  cursor: not-allowed;
+  background: none;
+  border: none;
+}
+
+.addBtnActive {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2563EB !important;
+  pointer-events: auto;
+  opacity: 1;
+  padding: 8px 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.addBtnActive:hover {
+  opacity: 0.8;
+}
+
+.bodyWrapper {
+  flex: 1;
+  position: relative; /* 자식 absolute 기준점 */
+  background-color: #FFFFFF;
+  overflow: hidden;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.navArrowBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px; /* 원형 크기 32px */
+  height: 32px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 1px solid var(--border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12); /* 그림자 효과 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 100;
+}
+
+.leftArrow {
+  left: 8px; /* left: 8px */
+}
+
+.rightArrow {
+  right: 8px; /* right: 8px */
+}
+
+.navArrowBtn:hover {
+  background-color: var(--bg-surface);
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+}
+
+.navArrowBtn:active {
+  transform: translateY(-50%) scale(0.95);
+}
+
+.navArrowBtn:disabled {
+  display: none; /* 이전/다음 페이지 끝에선 숨김 */
 }
