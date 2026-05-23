@@ -47,7 +47,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     venue: initialData?.venue || '',
     weather: initialData?.weather || 'sunny',
     memo: initialData?.memo || '',
-    seat: initialData?.seat || '',
     setlist: initialData?.setlist || [],
     isPublic: initialData?.isPublic ?? true,
     tags: initialData?.tags || initialData?.genre || [],
@@ -128,10 +127,13 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
           <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="닫기">
             <X size={24} color="#101828" />
           </button>
-          <div className={styles.stepIndicator}>
-            {[1, 2, 3].map(s => (
-              <div key={s} className={`${styles.stepDot} ${step >= s ? styles.stepDotActive : ''}`} />
-            ))}
+          <div className={styles.headerCenter}>
+            <span className={styles.headerTitle}>공연 기록하기</span>
+            <div className={styles.stepIndicator}>
+              {[1, 2, 3].map(s => (
+                <div key={s} className={`${styles.stepDot} ${step >= s ? styles.stepDotActive : ''}`} />
+              ))}
+            </div>
           </div>
           <button 
             type="button" 
@@ -146,13 +148,12 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
         <div className={styles.bodyWrapper}>
           <button 
             type="button" 
-            className={styles.navArrowBtn} 
+            className={`${styles.navArrowBtn} ${styles.leftArrow}`} 
             onClick={() => setStep(prev => Math.max(prev - 1, 1))}
             disabled={step === 1}
-            style={{ visibility: step === 1 ? 'hidden' : 'visible' }}
             aria-label="이전 페이지"
           >
-            <ChevronLeft size={24} color="#667085" />
+            <ChevronLeft size={20} color="#667085" />
           </button>
 
           <div className={styles.content}>
@@ -244,16 +245,6 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     <MapIcon size={20} color="#0054CB" />
                   </button>
                 </div>
-              </div>
-
-              <div className={styles.fieldGroup}>
-                <label className={styles.label}>좌석 / 구역</label>
-                <input 
-                  className={styles.input} 
-                  placeholder="예: 1층 B구역 15열 5번" 
-                  value={form.seat}
-                  onChange={(e) => set('seat', e.target.value)}
-                />
               </div>
             </div>
           )}
@@ -406,13 +397,12 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
 
         <button 
           type="button" 
-          className={styles.navArrowBtn} 
+          className={`${styles.navArrowBtn} ${styles.rightArrow}`} 
           onClick={() => setStep(prev => Math.min(prev + 1, 3))}
           disabled={step === 3}
-          style={{ visibility: step === 3 ? 'hidden' : 'visible' }}
           aria-label="다음 페이지"
         >
-          <ChevronRight size={24} color="#667085" />
+          <ChevronRight size={20} color="#667085" />
         </button>
       </div>
     </div>
