@@ -7,7 +7,8 @@ import {
   X, Camera, Calendar, MapPin, 
   CloudRain, Sun, Cloud, Snowflake, Wind,
   Music, Lock, Globe, Plus, Trash2,
-  Map as MapIcon, Flame, Heart, Star
+  Map as MapIcon, Flame, Heart, Star,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 // MapSelectModal은 Leaflet을 사용하므로 SSR을 비활성화하여 dynamic import합니다.
@@ -124,8 +125,8 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
       <div className={styles.modal}>
         {/* Header */}
         <div className={styles.header}>
-          <button type="button" className={styles.iconBtn} onClick={step === 1 ? onClose : () => setStep(step - 1)}>
-            {step === 1 ? <X size={24} color="#101828" /> : <span style={{fontSize:'16px', fontWeight:600}}>이전</span>}
+          <button type="button" className={styles.iconBtn} onClick={onClose} aria-label="닫기">
+            <X size={24} color="#101828" />
           </button>
           <div className={styles.stepIndicator}>
             {[1, 2, 3].map(s => (
@@ -134,15 +135,27 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
           </div>
           <button 
             type="button" 
-            className={styles.saveTextBtn} 
-            onClick={step === 3 ? handleSave : () => setStep(step + 1)}
-            disabled={isSaving}
+            className={step === 3 ? styles.addBtnActive : styles.addBtnDisabled}
+            onClick={step === 3 ? handleSave : undefined}
+            disabled={step !== 3 || isSaving}
           >
-            {isSaving ? '저장 중...' : (step === 3 ? '완료' : '다음')}
+            {isSaving ? '저장 중...' : '추가하기'}
           </button>
         </div>
 
-        <div className={styles.content}>
+        <div className={styles.bodyWrapper}>
+          <button 
+            type="button" 
+            className={styles.navArrowBtn} 
+            onClick={() => setStep(prev => Math.max(prev - 1, 1))}
+            disabled={step === 1}
+            style={{ visibility: step === 1 ? 'hidden' : 'visible' }}
+            aria-label="이전 페이지"
+          >
+            <ChevronLeft size={24} color="#667085" />
+          </button>
+
+          <div className={styles.content}>
           {/* STEP 1 */}
           {step === 1 && (
             <div className={styles.stepContainer}>
@@ -390,7 +403,19 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
             </div>
           )}
         </div>
+
+        <button 
+          type="button" 
+          className={styles.navArrowBtn} 
+          onClick={() => setStep(prev => Math.min(prev + 1, 3))}
+          disabled={step === 3}
+          style={{ visibility: step === 3 ? 'hidden' : 'visible' }}
+          aria-label="다음 페이지"
+        >
+          <ChevronRight size={24} color="#667085" />
+        </button>
       </div>
+    </div>
 
       {/* 장소 선택 지도 모달 */}
       {isMapOpen && (

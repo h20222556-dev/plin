@@ -630,3 +630,83 @@ input:checked + .slider:before {
 .confirmBtn:not(:disabled):active {
   transform: scale(0.98);
 }
+
+.addBtnDisabled {
+  font-size: 15px;
+  font-weight: 700;
+  color: #999999 !important;
+  pointer-events: none;
+  opacity: 0.4;
+  padding: 8px 0;
+  cursor: not-allowed;
+  background: none;
+  border: none;
+}
+
+.addBtnActive {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2563EB !important;
+  pointer-events: auto;
+  opacity: 1;
+  padding: 8px 0;
+  cursor: pointer;
+  background: none;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.addBtnActive:hover {
+  opacity: 0.8;
+}
+
+.bodyWrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  position: relative;
+  background-color: var(--bg-primary);
+  overflow: hidden;
+  width: 100%;
+}
+
+.navArrowBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #FFFFFF;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  z-index: 100;
+  flex-shrink: 0;
+  margin: 0 12px;
+}
+
+.navArrowBtn:hover {
+  background-color: var(--bg-surface);
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+.navArrowBtn:active {
+  transform: scale(0.95);
+}
+
+.navArrowBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .navArrowBtn {
+    margin: 0 6px;
+    width: 40px;
+    height: 40px;
+  }
+}
