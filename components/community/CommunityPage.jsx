@@ -11,6 +11,7 @@ import ChatList from './ChatList';
 import ChatModal from './ChatModal';
 import NewPostModal from './NewPostModal';
 import UserProfileModal from './UserProfileModal';
+import PostDetailModal from './PostDetailModal';
 import { Search, Hash } from 'lucide-react';
 
 const TABS = [
@@ -28,6 +29,7 @@ export default function CommunityPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPost, setSelectedPost] = useState(null);
 
   useEffect(() => {
     const pendingChat = sessionStorage.getItem('pendingChatRoom');
@@ -181,6 +183,7 @@ export default function CommunityPage() {
                   onLike={() => toggleLike(post.id, post.likes, post.isLiked)}
                   onAuthorClick={(author) => router.push(`/profile/${author.id}`)}
                   deletePost={deletePostFn}
+                  onPostClick={(post) => setSelectedPost(post)}
                 />
               ))}
             </div>
@@ -216,6 +219,15 @@ export default function CommunityPage() {
           onClose={() => setSelectedUser(null)}
           onStartChat={() => handleStartChat(selectedUser)}
           isStartingChat={startingChat}
+        />
+      )}
+
+      {/* Post Detail Modal */}
+      {selectedPost && (
+        <PostDetailModal
+          post={selectedPost}
+          onClose={() => setSelectedPost(null)}
+          onLike={toggleLike}
         />
       )}
     </div>

@@ -6,7 +6,7 @@ import { Heart, MessageCircle, Share2, Music, User, ArrowUp, Trash2 } from 'luci
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
-export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
+export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPostClick }) {
   const { user, isDemoMode } = useAuth();
   const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
   const authorId = post.author?.id;
@@ -230,16 +230,18 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost }) {
       </div>
 
       {/* Content */}
-      <p className={styles.content}>{post.content}</p>
+      <div onClick={() => onPostClick && onPostClick(post)} style={{ cursor: onPostClick ? 'pointer' : 'default' }}>
+        <p className={styles.content}>{post.content}</p>
 
-      {/* Tags */}
-      {post.tags && post.tags.length > 0 && (
-        <div className={styles.tags}>
-          {post.tags.map((t, i) => (
-            <span key={i} className={styles.tag}>#{t}</span>
-          ))}
-        </div>
-      )}
+        {/* Tags */}
+        {post.tags && post.tags.length > 0 && (
+          <div className={styles.tags}>
+            {post.tags.map((t, i) => (
+              <span key={i} className={styles.tag}>#{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Actions */}
       <div className={styles.actions}>

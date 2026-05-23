@@ -53,55 +53,57 @@ export default function RecordCalendar({ records, onSelectRecord, onRecordSelect
 
   return (
     <div className={styles.calendar}>
-      {/* Month Navigation */}
-      <div className={styles.nav}>
-        <button className={styles.navBtn} onClick={prevMonth}>‹</button>
-        <h2 className={styles.monthTitle}>
-          {format(currentMonth, 'yyyy년 M월', { locale: ko })}
-        </h2>
-        <button className={styles.navBtn} onClick={nextMonth}>›</button>
-      </div>
+      <div className={styles.calendarBody}>
+        {/* Month Navigation */}
+        <div className={styles.nav}>
+          <button className={styles.navBtn} onClick={prevMonth}>‹</button>
+          <h2 className={styles.monthTitle}>
+            {format(currentMonth, 'yyyy년 M월', { locale: ko })}
+          </h2>
+          <button className={styles.navBtn} onClick={nextMonth}>›</button>
+        </div>
 
-      {/* Weekday Headers */}
-      <div className={styles.weekdays}>
-        {weekdays.map(d => (
-          <div key={d} className={`${styles.weekday} ${d === '일' ? styles.sunday : d === '토' ? styles.saturday : ''}`}>
-            {d}
-          </div>
-        ))}
-      </div>
+        {/* Weekday Headers */}
+        <div className={styles.weekdays}>
+          {weekdays.map(d => (
+            <div key={d} className={`${styles.weekday} ${d === '일' ? styles.sunday : d === '토' ? styles.saturday : ''}`}>
+              {d}
+            </div>
+          ))}
+        </div>
 
-      {/* Days Grid */}
-      <div className={styles.grid}>
-        {Array.from({ length: startPad }).map((_, i) => (
-          <div key={`pad-${i}`} className={styles.dayEmpty} />
-        ))}
+        {/* Days Grid */}
+        <div className={styles.grid}>
+          {Array.from({ length: startPad }).map((_, i) => (
+            <div key={`pad-${i}`} className={styles.dayEmpty} />
+          ))}
 
-        {days.map(day => {
-          const key = format(day, 'yyyy-MM-dd');
-          const dayRecords = recordsByDate[key] || [];
-          const hasRecord = dayRecords.length > 0;
-          const isSelected = selectedDate === key;
+          {days.map(day => {
+            const key = format(day, 'yyyy-MM-dd');
+            const dayRecords = recordsByDate[key] || [];
+            const hasRecord = dayRecords.length > 0;
+            const isSelected = selectedDate === key;
 
-          return (
-            <button
-              key={key}
-              className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''} ${isSelected ? styles.daySelected : ''}`}
-              onClick={() => handleDateClick(key)}
-            >
-              <span className={styles.dayNum}>{format(day, 'd')}</span>
-              {hasRecord && (
-                <div className={styles.dayDots}>
-                  {dayRecords.slice(0, 3).map((r, i) => (
-                    <span key={i} className={styles.dayDot} title={r.emotion}>
-                      {r.emotion || '🎵'}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </button>
-          );
-        })}
+            return (
+              <button
+                key={key}
+                className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''} ${isSelected ? styles.daySelected : ''}`}
+                onClick={() => handleDateClick(key)}
+              >
+                <span className={styles.dayNum}>{format(day, 'd')}</span>
+                {hasRecord && (
+                  <div className={styles.dayDots}>
+                    {dayRecords.slice(0, 3).map((r, i) => (
+                      <span key={i} className={styles.dayDot} title={r.emotion}>
+                        {r.emotion || '🎵'}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Records Section */}

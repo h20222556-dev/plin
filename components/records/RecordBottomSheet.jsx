@@ -59,18 +59,6 @@ export default function RecordBottomSheet({ record, onClose, onUpdate, onDelete,
                 <span>{record.seat}</span>
               </div>
             )}
-            <div className={styles.metaItem}>
-              <div className={styles.stars}>
-                {[...Array(5)].map((_, i) => (
-                  <Star 
-                    key={i} 
-                    size={14} 
-                    fill={i < (record.rating || 0) ? "#FDB022" : "none"} 
-                    color={i < (record.rating || 0) ? "#FDB022" : "#D0D5DD"} 
-                  />
-                ))}
-              </div>
-            </div>
           </div>
 
           {/* Setlist */}
