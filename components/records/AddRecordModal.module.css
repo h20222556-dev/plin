@@ -5,7 +5,7 @@
   z-index: 2000;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* 아래에 붙여서 95dvh 팝업 정렬 */
+  justify-content: flex-end; /* 모바일: 아래에 밀착 */
   align-items: center;
 }
 
@@ -14,17 +14,48 @@
   flex-direction: column;
   background-color: #FFFFFF; /* 흰색 배경 */
   width: 100%;
-  max-width: 600px; /* 데스크톱 최대 너비 */
-  height: 95dvh; /* 거의 꽉 채움 */
-  border-radius: 16px 16px 0 0; /* 상단만 16px 라운드 */
+  height: 100dvh; /* 모바일: 100dvh */
+  border-radius: 0px; /* 모바일: border-radius 0px */
   box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
 }
 
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+/* 데스크탑 (min-width: 769px) */
+@media (min-width: 769px) {
+  .overlay {
+    justify-content: center; /* 중앙 정렬 */
+  }
+
+  .modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 480px;
+    height: auto;
+    max-height: 85vh;
+    border-radius: 16px;
+    box-shadow: var(--shadow-xl);
+    animation: fadeInScale 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
 }
 
 .header {
