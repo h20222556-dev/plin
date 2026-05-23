@@ -1,9 +1,16 @@
 .calendar {
   flex: 1;
-  height: 100%;
+  height: calc(100dvh - 216px);
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  padding: 16px 16px 24px;
+  padding: 16px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.calendarBody {
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 16px;
@@ -114,7 +121,8 @@
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .monthRecordsTitle {
