@@ -13,6 +13,7 @@ import {
 
 // MapSelectModal은 Leaflet을 사용하므로 SSR을 비활성화하여 dynamic import합니다.
 const MapSelectModal = dynamic(() => import('./MapSelectModal'), { ssr: false });
+const EmojiPicker = dynamic(() => import('../common/EmojiPicker'), { ssr: false });
 
 const WEATHER_OPTIONS = [
   { id: 'sunny', icon: Sun, label: '맑음' },
@@ -22,12 +23,7 @@ const WEATHER_OPTIONS = [
   { id: 'windy', icon: Wind, label: '바람' },
 ];
 
-const PIN_OPTIONS = [
-  { id: 'music', icon: Music, label: '음악' },
-  { id: 'flame', icon: Flame, label: '열광' },
-  { id: 'heart', icon: Heart, label: '감동' },
-  { id: 'star', icon: Star, label: '최고' },
-];
+
 
 export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [step, setStep] = useState(1);
@@ -38,6 +34,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
   const [tempLocation, setTempLocation] = useState(null);
 
   const [isSaving, setIsSaving] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const [form, setForm] = useState({
     photos: initialData?.photos || [],
@@ -50,7 +47,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     setlist: initialData?.setlist || [],
     isPublic: initialData?.isPublic ?? true,
     tags: initialData?.tags || initialData?.genre || [],
-    pinIcon: initialData?.pinIcon || 'music',
+    pinIcon: initialData?.pinIcon || '🎵',
     lat: initialData?.lat || null,
     lng: initialData?.lng || null
   });
@@ -242,7 +239,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                       setIsMapOpen(true);
                     }}
                   >
-                    <MapIcon size={20} color="#0054CB" />
+                    <MapIcon size={24} color="#0054CB" />
                   </button>
                 </div>
               </div>
@@ -273,17 +270,35 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
 
               <div className={styles.fieldGroup}>
                 <label className={styles.label}>지도 대표 핀 아이콘</label>
-                <div className={styles.pinGrid}>
-                  {PIN_OPTIONS.map(p => (
-                    <button 
-                      key={p.id} 
-                      type="button"
-                      className={`${styles.pinBtn} ${form.pinIcon === p.id ? styles.pinBtnActive : ''}`}
-                      onClick={() => set('pinIcon', p.id)}
-                    >
-                      <p.icon size={24} color={form.pinIcon === p.id ? "#FFFFFF" : "#667085"} fill={form.pinIcon === p.id ? "#FFFFFF" : "none"} />
-                    </button>
-                  ))}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                    style={{
+                      width: '64px',
+                      height: '64px',
+                      borderRadius: '50%',
+                      backgroundColor: 'var(--bg-surface)',
+                      border: '1px solid var(--border)',
+                      fontSize: '32px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {form.pinIcon}
+                  </button>
+                  {showEmojiPicker && (
+                    <div style={{ marginTop: '8px', zIndex: 100 }}>
+                      <EmojiPicker 
+                        onEmojiSelect={(emoji) => {
+                          set('pinIcon', emoji);
+                          setShowEmojiPicker(false);
+                        }} 
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
 
