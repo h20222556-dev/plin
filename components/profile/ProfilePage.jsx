@@ -368,7 +368,7 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
             )}
 
             {/* My Public Map */}
-            <div className={styles.section}>
+            <div className={styles.section} style={{ marginTop: '24px' }}>
               <div className={styles.sectionHeader}>
                 <h3 className={styles.sectionTitle}>나의 공개 지도</h3>
                 <span className={styles.sectionSub}>{publicRecords.length}개 공개</span>
@@ -383,7 +383,7 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
             </div>
 
             {/* Recent Records */}
-            <div className={styles.section}>
+            <div className={styles.section} style={{ marginTop: '24px' }}>
               <h3 className={styles.sectionTitle}>최근 기록</h3>
               {records.length === 0 && (
                 <p style={{ fontSize: 13, color: 'var(--text-muted)', textAlign: 'center', padding: '16px 0' }}>아직 기록이 없습니다.</p>
