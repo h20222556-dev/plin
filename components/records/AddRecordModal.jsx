@@ -91,7 +91,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     
     setIsSaving(true);
     try {
-      console.log('Attempting to save form:', form);
+      console.log('Attempting to save form, ensuring pinIcon:', form.pinIcon, form);
       if (onSave) {
         await onSave(form);
       }
@@ -293,6 +293,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                     <div style={{ marginTop: '8px', zIndex: 100 }}>
                       <EmojiPicker 
                         onEmojiSelect={(emoji) => {
+                          console.log('[EmojiPicker] Selected Emoji:', emoji);
                           set('pinIcon', emoji);
                           setShowEmojiPicker(false);
                         }} 
