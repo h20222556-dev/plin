@@ -4,6 +4,52 @@ import { useState, useEffect, useRef } from 'react';
 import styles from './RecordMap.module.css';
 import { useRecords } from '@/lib/hooks/useRecords';
 
+function createEmojiMarker(map, lat, lng, emoji, onClick) {
+  const kakao = window.kakao;
+  const container = document.createElement('div')
+  container.style.cssText = [
+    'position: relative',
+    'cursor: pointer',
+    'display: flex',
+    'flex-direction: column',
+    'align-items: center'
+  ].join(';')
+
+  const pin = document.createElement('div')
+  pin.style.cssText = [
+    'width: 48px',
+    'height: 48px',
+    'background: #2563EB',
+    'border-radius: 50% 50% 50% 0',
+    'transform: rotate(-45deg)',
+    'display: flex',
+    'align-items: center',
+    'justify-content: center',
+    'box-shadow: 0 2px 8px rgba(0,0,0,0.3)'
+  ].join(';')
+
+  const emojiSpan = document.createElement('span')
+  emojiSpan.style.cssText = [
+    'transform: rotate(45deg)',
+    'font-size: 22px',
+    'line-height: 1'
+  ].join(';')
+  emojiSpan.textContent = emoji || '🎵'
+
+  pin.appendChild(emojiSpan)
+  container.appendChild(pin)
+  container.addEventListener('click', onClick)
+
+  const overlay = new kakao.maps.CustomOverlay({
+    position: new kakao.maps.LatLng(lat, lng),
+    content: container,
+    yAnchor: 1.0
+  })
+
+  overlay.setMap(map)
+  return overlay
+}
+
 export default function RecordMap({ records, onSelectRecord, onMonthlyStatsClick }) {
   const { focusedRecord } = useRecords();
   const containerRef = useRef(null);
@@ -114,26 +160,6 @@ export default function RecordMap({ records, onSelectRecord, onMonthlyStatsClick
       bounds.extend(position);
       hasCoords = true;
 
-      // Create Custom Overlay for the emotional pin
-      const markerContent = document.createElement('div');
-      markerContent.className = 'plin-kakao-marker';
-      markerContent.style.cursor = 'pointer';
-      markerContent.innerHTML = `
-        <div class="plin-marker-inner">
-          <span>${record.emotion || '🎵'}</span>
-          <div class="plin-marker-pulse"></div>
-        </div>
-      `;
-
-      const customOverlay = new window.kakao.maps.CustomOverlay({
-        position: position,
-        content: markerContent,
-        yAnchor: 1.0
-      });
-
-      customOverlay.setMap(map);
-      overlaysRef.current.push(customOverlay);
-
       // Create InfoWindow for clicked display
       const infowindow = new window.kakao.maps.InfoWindow({
         position: position,
@@ -146,15 +172,22 @@ export default function RecordMap({ records, onSelectRecord, onMonthlyStatsClick
         removable: true
       });
 
-      // Handle marker click
-      markerContent.addEventListener('click', () => {
-        if (activeInfoWindowRef.current) {
-          activeInfoWindowRef.current.close();
+      const customOverlay = createEmojiMarker(
+        map,
+        record.lat,
+        record.lng,
+        record.pin_icon || record.pinIcon || '🎵',
+        () => {
+          if (activeInfoWindowRef.current) {
+            activeInfoWindowRef.current.close();
+          }
+          infowindow.open(map);
+          activeInfoWindowRef.current = infowindow;
+          onSelectRecord(record);
         }
-        infowindow.open(map);
-        activeInfoWindowRef.current = infowindow;
-        onSelectRecord(record);
-      });
+      );
+
+      overlaysRef.current.push(customOverlay);
     });
 
     // Auto fit bounds if not focused on a specific record and we have markers
