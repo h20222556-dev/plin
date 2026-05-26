@@ -743,3 +743,47 @@ input:checked + .slider:before {
 .navArrowBtn:disabled {
   display: none; /* 이전/다음 페이지 끝에선 숨김 */
 }
+
+.searchResultList {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  max-height: 180px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  z-index: 10;
+  border: 1px solid var(--border);
+}
+
+.searchResultItem {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background-color 0.2s;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem:hover, .searchResultItem:active {
+  background-color: var(--bg-surface);
+}
+
+.placeName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.addressName {
+  font-size: 12px;
+  color: var(--text-muted);
+}

@@ -26,6 +26,7 @@ const WEATHER_OPTIONS = [
 
 
 export default function AddRecordModal({ onClose, onSave, initialData }) {
+  const isEditing = !!initialData?.id;
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
   
@@ -83,6 +84,18 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     set('tags', form.tags.filter((_, i) => i !== index));
   };
 
+  const handleVenueKeyDown = (e) => {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+      e.preventDefault();
+      if (form.lat && form.lng) {
+        setTempLocation({ lat: form.lat, lng: form.lng, address: form.venue });
+      } else {
+        setTempLocation(null);
+      }
+      setIsMapOpen(true);
+    }
+  };
+
   const handleSave = async () => {
     if (!form.concertName || !form.date) {
       alert('공연명과 날짜를 입력해주세요.');
@@ -134,11 +147,11 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
           </div>
           <button 
             type="button" 
-            className={step === 3 ? styles.addBtnActive : styles.addBtnDisabled}
-            onClick={step === 3 ? handleSave : undefined}
-            disabled={step !== 3 || isSaving}
+            className={(isEditing || step === 3) ? styles.addBtnActive : styles.addBtnDisabled}
+            onClick={(isEditing || step === 3) ? handleSave : undefined}
+            disabled={(!isEditing && step !== 3) || isSaving}
           >
-            {isSaving ? '저장 중...' : '추가하기'}
+            {isSaving ? '저장 중...' : (isEditing ? '수정완료' : '추가하기')}
           </button>
         </div>
 
@@ -227,6 +240,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
                       placeholder="장소 검색 또는 입력" 
                       value={form.venue}
                       onChange={(e) => set('venue', e.target.value)}
+                      onKeyDown={handleVenueKeyDown}
                     />
                   </div>
                   <button 
@@ -427,6 +441,7 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
       {isMapOpen && (
         <MapSelectModal
           initialLocation={tempLocation}
+          initialSearchKeyword={form.venue}
           onConfirm={(location) => {
             set('venue', location.address);
             set('lat', location.lat);
