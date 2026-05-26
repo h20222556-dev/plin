@@ -272,7 +272,7 @@ export default function ChatModal({ chat, onClose }) {
       const data = chatRoom ? { ...chatRoom, is_blocked: true, blocked_by: user?.id } : null;
       setChatRoom(data);
       setShowBlockConfirm(false);
-      alert('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다. (데모 모드)');
+      showToast('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다. (데모 모드)');
       return;
     }
 
@@ -289,7 +289,7 @@ export default function ChatModal({ chat, onClose }) {
 
       if (blockError && blockError.code !== '23505') {
         console.error('차단 실패:', blockError.message);
-        alert('차단에 실패했습니다: ' + blockError.message);
+        showToast('차단에 실패했습니다.');
         return;
       }
 
@@ -303,15 +303,18 @@ export default function ChatModal({ chat, onClose }) {
 
       if (roomError) {
         console.error('채팅방 차단 처리 실패:', roomError.message);
-        alert('차단 처리 실패: ' + roomError.message);
+        showToast('차단 처리 실패');
         return;
       }
 
-      // DB에서 최신 상태 다시 불러오기
-      await refetchChatRoom();
+      // 로컬 상태 즉시 업데이트
+      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: currentUser.id } : null);
       setShowBlockConfirm(false);
       setShowMenu(false);
-      alert('차단되었습니다.');
+      showToast('차단되었습니다.');
+
+      // DB에서 최신 상태 다시 불러오기
+      refetchChatRoom();
     } catch (err) {
       console.error('차단 처리 중 오류:', err);
     }
@@ -328,12 +331,12 @@ export default function ChatModal({ chat, onClose }) {
 
 
   // 대화 계속하기 버튼 표시 조건 수정
-  // 차단되지 않은 경우 대화 연장 가능
+  // 차단되지 않은 경우 대화 계속하기 가능
   const showExtendButton = !isBlocked;
 
   const getTimeLeft = () => {
     if (isBlocked) return '차단됨';
-    if (chatRoom?.is_extended) return '계속 대화 가능';
+    if (chatRoom?.is_extended) return ''; // 연장 시 타이머 미노출
 
     const target = chatRoom?.expires_at || chat.expiresAt;
     if (!target) return '';
@@ -417,7 +420,7 @@ export default function ChatModal({ chat, onClose }) {
                       fontWeight: '500'
                     }}
                   >
-                    {isExpired ? '대화 계속하기' : '대화 연장하기'}
+                    대화 계속하기
                   </button>
                 )}
 
