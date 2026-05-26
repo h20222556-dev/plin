@@ -229,8 +229,6 @@ export default function ChatList({ onOpenChat }) {
                   <span className={styles.expiredBadge}>만료됨</span>
                 ) : chat.isExtended ? (
                   <span className={styles.timeBadge} style={{ color: 'var(--text-secondary)' }}><Clock size={12} style={{ marginRight: 2 }} /> 계속 대화 가능</span>
-                ) : timeLeft ? (
-                  <span className={styles.timeBadge}><Clock size={12} style={{ marginRight: 2 }} /> {timeLeft}</span>
                 ) : null}
               </div>
             </button>

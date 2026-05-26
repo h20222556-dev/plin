@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   profile_emoji TEXT      NOT NULL DEFAULT '🧑‍🎤',
   bio         TEXT,
   is_public   BOOLEAN     NOT NULL DEFAULT TRUE,
+  is_chat_blocked BOOLEAN NOT NULL DEFAULT FALSE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -322,6 +323,29 @@ ALTER TABLE public.blocked_users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "blocked_users_select" ON public.blocked_users FOR SELECT USING (auth.uid() = blocker_id);
 CREATE POLICY "blocked_users_insert" ON public.blocked_users FOR INSERT WITH CHECK (auth.uid() = blocker_id);
 CREATE POLICY "blocked_users_delete" ON public.blocked_users FOR DELETE USING (auth.uid() = blocker_id);
+
+-- ──────────────────────────────────────
+-- 8.6 USER_RATINGS 테이블 (유저 별점 평가)
+-- ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.user_ratings (
+  id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  rater_id     UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  rated_id     UUID        NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  rating       INT         NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  chat_room_id UUID        REFERENCES public.chat_rooms(id) ON DELETE SET NULL,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (rater_id, rated_id)
+);
+
+CREATE INDEX IF NOT EXISTS user_ratings_rater_id_idx ON public.user_ratings(rater_id);
+CREATE INDEX IF NOT EXISTS user_ratings_rated_id_idx ON public.user_ratings(rated_id);
+
+-- ── USER_RATINGS RLS ──
+ALTER TABLE public.user_ratings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "user_ratings_select" ON public.user_ratings FOR SELECT USING (TRUE);
+CREATE POLICY "user_ratings_insert" ON public.user_ratings FOR INSERT WITH CHECK (auth.uid() = rater_id);
+CREATE POLICY "user_ratings_update" ON public.user_ratings FOR UPDATE USING (auth.uid() = rater_id) WITH CHECK (auth.uid() = rater_id);
+CREATE POLICY "user_ratings_delete" ON public.user_ratings FOR DELETE USING (auth.uid() = rater_id);
 
 
 

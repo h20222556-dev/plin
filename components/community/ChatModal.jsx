@@ -26,6 +26,11 @@ export default function ChatModal({ chat, onClose }) {
   const [showBlockConfirm, setShowBlockConfirm] = useState(false);
   const [opponent, setOpponent] = useState(null);
 
+  // 별점 평가 및 토스트 상태 추가
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedRating, setSelectedRating] = useState(5);
+  const [toastMessage, setToastMessage] = useState('');
+
   const [chatRoom, setChatRoom] = useState(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
 
@@ -153,6 +158,76 @@ export default function ChatModal({ chat, onClose }) {
     fetchOpponent();
   }, [chat.roomId, chat.recipientId, isDemoMode]);
 
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
+
+  useEffect(() => {
+    const fetchExistingRating = async () => {
+      const myUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
+      const otherUserId = opponent?.id;
+      if (!myUserId || !otherUserId) return;
+
+      if (isDemoMode) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('user_ratings')
+          .select('rating')
+          .eq('rater_id', myUserId)
+          .eq('rated_id', otherUserId)
+          .maybeSingle();
+
+        if (!error && data) {
+          setSelectedRating(data.rating);
+        }
+      } catch (err) {
+        console.error('Error fetching rating:', err);
+      }
+    };
+
+    if (showRatingModal && opponent?.id) {
+      fetchExistingRating();
+    }
+  }, [showRatingModal, opponent?.id, isDemoMode, user?.id]);
+
+  const handleSaveRating = async () => {
+    const myUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
+    const otherUserId = opponent?.id;
+    if (!myUserId || !otherUserId) {
+      alert('평가 대상을 찾을 수 없습니다.');
+      return;
+    }
+
+    if (isDemoMode) {
+      showToast('평가가 완료됐어요!');
+      setShowRatingModal(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('user_ratings')
+        .upsert({
+          rater_id: myUserId,
+          rated_id: otherUserId,
+          rating: selectedRating,
+          chat_room_id: chat.roomId
+        }, { onConflict: 'rater_id,rated_id' });
+
+      if (error) throw error;
+
+      showToast('평가가 완료됐어요!');
+      setShowRatingModal(false);
+    } catch (err) {
+      console.error('별점 저장 실패:', err.message);
+      alert('평가 저장에 실패했습니다: ' + err.message);
+    }
+  };
+
   const send = async () => {
     if (!input.trim()) return;
     await sendMessage(input);
@@ -251,23 +326,23 @@ export default function ChatModal({ chat, onClose }) {
 
 
   // 대화 계속하기 버튼 표시 조건 수정
-  // 만료되었거나 만료 시간이 있는 경우 모두 표시 (차단된 경우 제외)
-  const showExtendButton = !isBlocked && (isExpired || chatRoom?.expires_at);
+  // 만료된 대화방이며 차단되지 않은 경우에만 대화 연장 가능
+  const showExtendButton = isExpired && !isBlocked;
 
   const getTimeLeft = () => {
     if (isBlocked) {
       return '차단됨';
     }
+    if (chatRoom?.is_extended) {
+      return '계속 대화 가능';
+    }
     const target = chatRoom?.expires_at || chat.expiresAt;
     if (!target) {
-      if (chatRoom?.is_extended) return '계속 대화 가능';
-      return '3일 후 삭제';
+      return '';
     }
     const diff = new Date(target).getTime() - Date.now();
     if (diff <= 0) return '만료됨';
-    const hr = Math.floor(diff / 3600000);
-    if (hr < 24) return `${hr}시간 후 삭제`;
-    return `${Math.floor(hr / 24)}일 후 삭제`;
+    return ''; // 만료 전인 일반 대화방은 남은 시간 표시 제거
   };
 
   const nickname = opponent?.nickname || chat.recipientNickname || '알 수 없는 사용자';
@@ -287,10 +362,12 @@ export default function ChatModal({ chat, onClose }) {
             </div>
             <div>
               <h3 className={styles.name}>{nickname}</h3>
-              <div className={styles.timer}>
-                <Clock size={12} />
-                <span>{getTimeLeft()}</span>
-              </div>
+              {getTimeLeft() && (
+                <div className={styles.timer}>
+                  <Clock size={12} />
+                  <span>{getTimeLeft()}</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -340,25 +417,46 @@ export default function ChatModal({ chat, onClose }) {
                 )}
 
                 {!isBlocked && (
-                  <button
-                    onClick={() => {
-                      setShowBlockConfirm(true);
-                      setShowMenu(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px 16px',
-                      textAlign: 'left',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      fontSize: 14,
-                      color: '#ff3b30',
-                      fontWeight: '500'
-                    }}
-                  >
-                    차단하기
-                  </button>
+                  <>
+                    <button
+                      onClick={() => {
+                        setShowRatingModal(true);
+                        setShowMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        color: 'var(--text-primary)',
+                        fontWeight: '500'
+                      }}
+                    >
+                      평가하기
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowBlockConfirm(true);
+                        setShowMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: 'none',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        color: '#ff3b30',
+                        fontWeight: '500'
+                      }}
+                    >
+                      차단하기
+                    </button>
+                  </>
                 )}
               </div>
             )}
@@ -422,7 +520,7 @@ export default function ChatModal({ chat, onClose }) {
           }}>
             {isBlocked ? (
               <p style={{ fontSize: 14, color: '#888' }}>
-                차단된 대화방입니다. 더 이상 대화를 이어갈 수 없습니다.
+                차단된 대화방입니다.
               </p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
@@ -526,6 +624,105 @@ export default function ChatModal({ chat, onClose }) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Rating Modal */}
+      {showRatingModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 700
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            padding: 24,
+            margin: '0 20px',
+            maxWidth: 320,
+            width: '100%',
+            boxShadow: 'var(--shadow-xl)',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ marginBottom: 12, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>상대방 평가하기</h3>
+            <p style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 20 }}>
+              {opponent?.nickname || '상대방'}님과의 대화는 어땠나요?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginBottom: 24 }}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <button
+                  key={star}
+                  onClick={() => setSelectedRating(star)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    fontSize: 32,
+                    cursor: 'pointer',
+                    color: star <= selectedRating ? '#FFCC00' : '#E4E7EC',
+                    transition: 'transform 0.1s'
+                  }}
+                >
+                  ★
+                </button>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => setShowRatingModal(false)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: '1px solid var(--border)',
+                  background: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveRating}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: '#0054CB',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: '600'
+                }}
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Toast Message */}
+      {toastMessage && (
+        <div style={{
+          position: 'fixed',
+          bottom: 80,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(0, 0, 0, 0.8)',
+          color: 'white',
+          padding: '12px 24px',
+          borderRadius: 24,
+          fontSize: 14,
+          fontWeight: '500',
+          zIndex: 800,
+          pointerEvents: 'none'
+        }}>
+          {toastMessage}
         </div>
       )}
     </div>

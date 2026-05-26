@@ -19,6 +19,49 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  // 채팅 차단 여부 및 평균 별점 상태 추가
+  const [isChatBlocked, setIsChatBlocked] = useState(user?.is_chat_blocked || false);
+  const [avgRating, setAvgRating] = useState(null);
+
+  useEffect(() => {
+    const fetchChatBlockedAndRating = async () => {
+      if (targetUserId === '00000000-0000-0000-0000-000000000001' || targetUserId === 'demo_user') {
+        setAvgRating('4.5');
+        return;
+      }
+
+      try {
+        // users 테이블에서 is_chat_blocked 상태 조회
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('is_chat_blocked')
+          .eq('id', targetUserId)
+          .single();
+
+        if (!userError && userData) {
+          setIsChatBlocked(userData.is_chat_blocked);
+        }
+
+        // user_ratings 테이블에서 평균 평점 조회
+        const { data: ratingData, error: ratingError } = await supabase
+          .from('user_ratings')
+          .select('rating')
+          .eq('rated_id', targetUserId);
+
+        if (!ratingError && ratingData && ratingData.length > 0) {
+          const avg = (ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length).toFixed(1);
+          setAvgRating(avg);
+        } else {
+          setAvgRating(null);
+        }
+      } catch (err) {
+        console.error('Error fetching chat blocked or rating:', err);
+      }
+    };
+
+    fetchChatBlockedAndRating();
+  }, [targetUserId]);
+
   useEffect(() => {
     const checkFollowStatus = async () => {
       try {
@@ -167,7 +210,10 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
             <div className={styles.avatar}>
               <User size={48} color="#0054CB" />
             </div>
-            <h2 className={styles.nickname}>{user.nickname}</h2>
+            <h2 className={styles.nickname}>
+              {user.nickname}
+              {avgRating && <span style={{ fontSize: '16px', color: '#FFCC00', marginLeft: '6px' }}>⭐ {avgRating}</span>}
+            </h2>
             {!user.isPublic && <span className={styles.privateBadge}>비공개 계정</span>}
             <p className={styles.bio}>{user.bio || '음악을 사랑하는 플린이'}</p>
 
@@ -184,23 +230,30 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
             </div>
           </div>
 
-          <div className={styles.actions}>
-            <button
-              className={styles.chatBtn}
-              onClick={onStartChat}
-              disabled={isStartingChat}
-            >
-              {isStartingChat ? <Loader size={18} className="spin" /> : <MessageCircle size={18} />}
-              <span>채팅하기</span>
-            </button>
-            <button
-              className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
-              onClick={handleFollowToggle}
-              disabled={followLoading}
-            >
-              <Heart size={18} color={isFollowing ? "#FF4B4B" : "#0054CB"} fill={isFollowing ? "#FF4B4B" : "none"} />
-              <span>{followLoading ? '처리 중...' : isFollowing ? '팔로우 중' : '팔로우'}</span>
-            </button>
+          <div className={styles.actions} style={{ flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                className={styles.chatBtn}
+                onClick={onStartChat}
+                disabled={isStartingChat || isChatBlocked}
+              >
+                {isStartingChat ? <Loader size={18} className="spin" /> : <MessageCircle size={18} />}
+                <span>채팅하기</span>
+              </button>
+              <button
+                className={`${styles.followBtn} ${isFollowing ? styles.following : ''}`}
+                onClick={handleFollowToggle}
+                disabled={followLoading}
+              >
+                <Heart size={18} color={isFollowing ? "#FF4B4B" : "#0054CB"} fill={isFollowing ? "#FF4B4B" : "none"} />
+                <span>{followLoading ? '처리 중...' : isFollowing ? '팔로우 중' : '팔로우'}</span>
+              </button>
+            </div>
+            {isChatBlocked && (
+              <p style={{ color: '#ff3b30', fontSize: '13px', textAlign: 'center', fontWeight: '500', margin: '4px 0 0 0', width: '100%' }}>
+                이 사용자는 채팅이 제한된 사용자예요.
+              </p>
+            )}
           </div>
 
           <div className={styles.recordsSection}>

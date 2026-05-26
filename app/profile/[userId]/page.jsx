@@ -20,6 +20,10 @@ export default function UserProfilePage({ params }) {
   const [posts, setPosts] = useState([]);
   const [followers, setFollowers] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // 채팅 차단 여부 및 평균 별점 상태 추가
+  const [isChatBlocked, setIsChatBlocked] = useState(false);
+  const [avgRating, setAvgRating] = useState(null);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
   const [activeTab, setActiveTab] = useState('records'); // records | posts | followers
@@ -35,12 +39,30 @@ export default function UserProfilePage({ params }) {
         // 1. Fetch user bio & details (including privacy settings)
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('*, is_public, show_records, show_posts, show_followers')
+          .select('*, is_public, show_records, show_posts, show_followers, is_chat_blocked')
           .eq('id', userId)
           .single();
 
         if (userError) throw userError;
         setProfile(userData);
+        setIsChatBlocked(userData.is_chat_blocked || false);
+
+        // Fetch user ratings
+        if (userId === '00000000-0000-0000-0000-000000000001' || userId === 'demo_user') {
+          setAvgRating('4.5');
+        } else {
+          const { data: ratingData, error: ratingError } = await supabase
+            .from('user_ratings')
+            .select('rating')
+            .eq('rated_id', userId);
+
+          if (!ratingError && ratingData && ratingData.length > 0) {
+            const avg = (ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length).toFixed(1);
+            setAvgRating(avg);
+          } else {
+            setAvgRating(null);
+          }
+        }
 
         // Reset active tab if followers tab is private and currently selected
         const isOwnerAccount = currentUser?.id === userId;
@@ -214,7 +236,10 @@ export default function UserProfilePage({ params }) {
             </div>
 
             <div className={styles.profileInfo}>
-              <h2 className={styles.nickname}>{profile.nickname}</h2>
+              <h2 className={styles.nickname}>
+                {profile.nickname}
+                {avgRating && <span style={{ fontSize: '18px', color: '#FFCC00', marginLeft: '8px' }}>⭐ {avgRating}</span>}
+              </h2>
               <p className={styles.username}>@{profile.nickname?.toLowerCase()}</p>
             </div>
 
@@ -227,12 +252,20 @@ export default function UserProfilePage({ params }) {
                   {isFollowing ? '팔로잉' : '팔로우'}
                 </button>
                 {isPublicAccount && (
-                  <button
-                    className={styles.chatBtn}
-                    onClick={handleStartChat}
-                  >
-                    채팅하기
-                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-end' }}>
+                    <button
+                      className={styles.chatBtn}
+                      onClick={handleStartChat}
+                      disabled={isChatBlocked}
+                    >
+                      채팅하기
+                    </button>
+                    {isChatBlocked && (
+                      <span style={{ color: '#ff3b30', fontSize: '11px', fontWeight: '500', marginTop: '2px', display: 'block', maxWidth: '180px', textAlign: 'right' }}>
+                        이 사용자는 채팅이 제한된 사용자예요.
+                      </span>
+                    )}
+                  </div>
                 )}
               </div>
             )}

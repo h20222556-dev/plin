@@ -1,0 +1,3 @@
+01:42:49.694217 exec-cmd.c:145          trace: resolved executable path from Darwin stack: /Library/Developer/CommandLineTools/usr/bin/git
+01:42:49.695528 exec-cmd.c:267          trace: resolved executable dir: /Library/Developer/CommandLineTools/usr/bin
+01:42:49.698134 git.c:476               trace: built-in: git commit --no-verify -m 'fix: 지도 핀 아이콘이 선택한 이모지로 표시되도록 수정'

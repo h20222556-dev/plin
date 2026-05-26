@@ -27,6 +27,10 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
   const isDemoMode = auth?.isDemoMode ?? false;
   const [blockedUsers, setBlockedUsers] = useState([]);
 
+  // 내 평균 별점 및 평가 수 상태 추가
+  const [myRating, setMyRating] = useState(null);
+  const [ratingCount, setRatingCount] = useState(0);
+
   // Sync nickname only, since it is edited via a different save button
   useEffect(() => {
     if (user) {
@@ -129,6 +133,39 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
     };
 
     fetchBlockedUsers();
+  }, [user?.id, activeSection, isDemoMode]);
+
+  // 내 별점 평점 fetch
+  useEffect(() => {
+    if (!user?.id || activeSection !== 'settings') return;
+
+    const fetchMyRatings = async () => {
+      if (isDemoMode) {
+        setMyRating('4.2');
+        setRatingCount(12);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('user_ratings')
+          .select('rating')
+          .eq('rated_id', user.id);
+
+        if (!error && data && data.length > 0) {
+          const avg = (data.reduce((sum, r) => sum + r.rating, 0) / data.length).toFixed(1);
+          setMyRating(avg);
+          setRatingCount(data.length);
+        } else {
+          setMyRating(null);
+          setRatingCount(0);
+        }
+      } catch (err) {
+        console.error('Error fetching my ratings:', err);
+      }
+    };
+
+    fetchMyRatings();
   }, [user?.id, activeSection, isDemoMode]);
 
   const handleUnblock = async (blockId) => {
@@ -415,6 +452,22 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
         {activeSection === 'settings' && (
           <div className="animate-fade-in">
             <div className={styles.settingsList}>
+              <div className={styles.settingsGroup}>
+                <p className={styles.groupLabel}>평점 관리</p>
+                <div className={styles.settingItem} style={{ background: 'var(--bg-surface)' }}>
+                  <div className={styles.settingInfo}>
+                    <p className={styles.settingTitle} style={{ fontWeight: '600' }}>나의 평점</p>
+                    <p className={styles.settingValue} style={{ fontSize: '14px', color: 'var(--text-primary)', marginTop: '4px', fontWeight: '500' }}>
+                      {ratingCount > 0 ? (
+                        <span>⭐ {myRating} ({ratingCount}명이 평가)</span>
+                      ) : (
+                        <span>아직 받은 평가가 없습니다.</span>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
               <div className={styles.settingsGroup}>
                 <p className={styles.groupLabel}>계정</p>
                 <div className={styles.settingItem}>
