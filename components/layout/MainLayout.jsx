@@ -128,20 +128,16 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
                   className={styles.fabButton}
                   onClick={() => setIsAddOpen(true)}
                 >
-                  <svg viewBox="0 0 48 48" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <g stroke="white" strokeWidth="1.5" strokeOpacity="0.3" strokeLinecap="round">
-                      <path d="M 6 34 L 42 34" />
-                      <path d="M 12 40 L 36 40" />
-                      <path d="M 16 30 L 10 44" />
-                      <path d="M 24 30 L 24 44" />
-                      <path d="M 32 30 L 38 44" />
-                    </g>
-                    <path d="M24 6 C14 6 8 13 8 20 C8 31 24 44 24 44 C24 44 40 31 40 20 C40 13 34 6 24 6 Z"
-                      fill="none" stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
-                    <path d="M20 14 L20 28 M20 14 C20 14 32 11 32 19 C32 24 20 26 20 26"
-                      fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                    <circle cx="20" cy="32" r="3.5" fill="white"/>
-                  </svg>
+                  <img
+                    src="/plin-logo.png"
+                    alt="기록하기"
+                    style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '8px',
+                      objectFit: 'cover'
+                    }}
+                  />
                 </button>
               </div>
             );
