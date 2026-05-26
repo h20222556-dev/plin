@@ -257,6 +257,9 @@ export default function ChatModal({ chat, onClose }) {
       return;
     }
 
+    // 로컬 상태 즉시 업데이트
+    setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : null);
+
     // DB에서 최신 상태 다시 불러오기
     await refetchChatRoom();
     setShowMenu(false);
@@ -326,8 +329,8 @@ export default function ChatModal({ chat, onClose }) {
 
 
   // 대화 계속하기 버튼 표시 조건 수정
-  // 만료된 대화방이며 차단되지 않은 경우에만 대화 연장 가능
-  const showExtendButton = isExpired && !isBlocked;
+  // 차단되지 않은 경우 대화 연장 가능
+  const showExtendButton = !isBlocked;
 
   const getTimeLeft = () => {
     if (isBlocked) {
@@ -412,7 +415,7 @@ export default function ChatModal({ chat, onClose }) {
                       fontWeight: '500'
                     }}
                   >
-                    대화 계속하기
+                    {isExpired ? '대화 계속하기' : '대화 연장하기'}
                   </button>
                 )}
 
