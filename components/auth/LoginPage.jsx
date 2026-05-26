@@ -68,11 +68,9 @@ export default function LoginPage() {
     <div className={styles.container}>
       <div className={styles.content}>
         {/* Logo */}
-        <div className={styles.logoArea}>
-          <div className={styles.logoCircle}>
-            <Music size={48} color="white" />
-          </div>
-          <h1 className={styles.logoText}>PLIN</h1>
+        <div className={styles.logoArea} style={{ marginBottom: '32px' }}>
+          <img src="/plin-logo.svg" alt="PLIN 로고" width={120} height={120} style={{ borderRadius: '24px' }} />
+          <h1 className={styles.logoText} style={{ fontSize: '28px', fontWeight: '700', color: '#2563EB', marginTop: '12px' }}>PLIN</h1>
           <p className={styles.tagline}>나만의 공연 기록을 남기고<br/>공연 메이트를 만나세요</p>
         </div>
 

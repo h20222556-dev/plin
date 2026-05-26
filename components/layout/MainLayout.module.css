@@ -145,11 +145,11 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--gradient-brand, linear-gradient(135deg, #0054CB, #337BE2));
+  background: #2563EB;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 12px rgba(0, 84, 203, 0.4);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
   transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   border: 4px solid var(--bg-primary); /* creates a cutout effect */
 }

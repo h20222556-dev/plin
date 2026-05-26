@@ -128,7 +128,20 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
                   className={styles.fabButton}
                   onClick={() => setIsAddOpen(true)}
                 >
-                  <tab.icon size={28} color="white" strokeWidth={2.5} />
+                  <svg viewBox="0 0 48 48" width="32" height="32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <g stroke="white" strokeWidth="1.5" strokeOpacity="0.3" strokeLinecap="round">
+                      <path d="M 6 34 L 42 34" />
+                      <path d="M 12 40 L 36 40" />
+                      <path d="M 16 30 L 10 44" />
+                      <path d="M 24 30 L 24 44" />
+                      <path d="M 32 30 L 38 44" />
+                    </g>
+                    <path d="M24 4C16 4 10 10 10 18C10 28 24 44 24 44C24 44 38 28 38 18C38 10 32 4 24 4Z"
+                      stroke="white" strokeWidth="2.5" strokeLinejoin="round"/>
+                    <path d="M24 12C24 12 30 10 30 16C30 20 26 22 24 22"
+                      stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                    <circle cx="24" cy="26" r="3" fill="white"/>
+                  </svg>
                 </button>
               </div>
             );
