@@ -236,10 +236,9 @@ export default function ChatModal({ chat, onClose }) {
 
   const handleExtendChat = async () => {
     if (isDemoMode) {
-      const data = chatRoom ? { ...chatRoom, expires_at: null, is_extended: true } : null;
-      setChatRoom(data);
+      setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
       setShowMenu(false);
-      alert('대화가 계속 이어집니다! (데모 모드)');
+      showToast('대화가 계속 이어집니다! (데모 모드)');
       return;
     }
 
@@ -253,17 +252,17 @@ export default function ChatModal({ chat, onClose }) {
 
     if (error) {
       console.error('대화 연장 실패:', error.message);
-      alert('대화 연장에 실패했습니다: ' + error.message);
+      showToast('대화 연장에 실패했습니다.');
       return;
     }
 
     // 로컬 상태 즉시 업데이트
     setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : null);
-
-    // DB에서 최신 상태 다시 불러오기
-    await refetchChatRoom();
     setShowMenu(false);
-    alert('대화가 계속 이어집니다!');
+    showToast('대화가 계속 이어집니다!');
+    
+    // DB에서 최신 상태 백그라운드에서 다시 불러오기
+    refetchChatRoom();
   };
 
   const handleBlock = async () => {
