@@ -4,13 +4,36 @@ import { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import styles from './AddRecordModal.module.css';
 
-export default function MapSelectModal({ initialLocation, onConfirm, onClose }) {
+export default function MapSelectModal({ initialLocation, initialSearchKeyword, onConfirm, onClose }) {
   const [tempLocation, setTempLocation] = useState(initialLocation || null);
+  const [searchResults, setSearchResults] = useState([]);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const containerRef = useRef(null);
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const [isLoaded, setIsLoaded] = useState(false);
+
+  const handleSearchResultClick = (result) => {
+    if (!window.kakao || !mapInstanceRef.current) return;
+    const lat = parseFloat(result.y);
+    const lng = parseFloat(result.x);
+    const address = result.place_name;
+    const newPos = new window.kakao.maps.LatLng(lat, lng);
+    
+    mapInstanceRef.current.setCenter(newPos);
+    
+    if (markerRef.current) {
+      markerRef.current.setPosition(newPos);
+    } else {
+      const marker = new window.kakao.maps.Marker({
+        position: newPos,
+        map: mapInstanceRef.current
+      });
+      markerRef.current = marker;
+    }
+    
+    setTempLocation({ lat, lng, address });
+  };
 
   // SDK 스크립트 동적 삽입
   useEffect(() => {
@@ -81,8 +104,35 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
       // Create Geocoder
       const geocoder = new window.kakao.maps.services.Geocoder();
 
-      // If initial location exists, place a marker
-      if (tempLocation) {
+      // If keyword exists, search for places
+      if (initialSearchKeyword) {
+        const ps = new window.kakao.maps.services.Places();
+        ps.keywordSearch(initialSearchKeyword, (result, status) => {
+          if (status === window.kakao.maps.services.Status.OK) {
+            setSearchResults(result);
+            const firstResult = result[0];
+            const searchPosition = new window.kakao.maps.LatLng(firstResult.y, firstResult.x);
+            map.setCenter(searchPosition);
+
+            // Place a marker
+            if (markerRef.current) {
+              markerRef.current.setPosition(searchPosition);
+            } else {
+              const marker = new window.kakao.maps.Marker({
+                position: searchPosition,
+                map: map
+              });
+              markerRef.current = marker;
+            }
+
+            setTempLocation({
+              lat: parseFloat(firstResult.y),
+              lng: parseFloat(firstResult.x),
+              address: firstResult.place_name
+            });
+          }
+        });
+      } else if (tempLocation) {
         const marker = new window.kakao.maps.Marker({
           position: centerPosition,
           map: map
@@ -145,6 +195,20 @@ export default function MapSelectModal({ initialLocation, onConfirm, onClose }) 
               background: '#e0e0e0' 
             }} 
           />
+          {searchResults.length > 0 && (
+            <div className={styles.searchResultList}>
+              {searchResults.map((result, idx) => (
+                <div 
+                  key={idx} 
+                  className={styles.searchResultItem}
+                  onClick={() => handleSearchResultClick(result)}
+                >
+                  <span className={styles.placeName}>{result.place_name}</span>
+                  <span className={styles.addressName}>{result.address_name || result.road_address_name}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className={styles.mapModalFooter}>
