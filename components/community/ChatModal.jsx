@@ -33,6 +33,7 @@ export default function ChatModal({ chat, onClose }) {
 
   const [chatRoom, setChatRoom] = useState(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
+  const [showNotice, setShowNotice] = useState(false);
 
   const refetchChatRoom = useCallback(async () => {
     if (isDemoMode) {
@@ -69,6 +70,14 @@ export default function ChatModal({ chat, onClose }) {
     setChatRoom(data);
     setIsLoadingRoom(false);
   }, [chat.roomId, isDemoMode]);
+
+  useEffect(() => {
+    const key = "noticed_room_" + chat.roomId;
+    if (!localStorage.getItem(key)) {
+      setShowNotice(true);
+      localStorage.setItem(key, "true");
+    }
+  }, [chat.roomId]);
 
   useEffect(() => {
     refetchChatRoom();
@@ -248,8 +257,8 @@ export default function ChatModal({ chat, onClose }) {
       .eq('id', chat.roomId);
 
     if (error) {
-      console.error('대화 연장 실패:', error.message);
-      showToast('대화 연장에 실패했습니다.');
+      console.error('대화 계속 실패:', error.message);
+      showToast('대화 계속하기에 실패했습니다.');
       return;
     }
 
@@ -459,10 +468,10 @@ export default function ChatModal({ chat, onClose }) {
 
         {/* Messages */}
         <div className={styles.messages}>
-          {!isExpired && !isBlocked && chatRoom?.expires_at && (
+          {showNotice && !isExpired && !isBlocked && (
             <div className={styles.ephemeralNotice}>
               <Info size={14} color="#0054CB" style={{ flexShrink: 0 }} />
-              <span>이 대화는 마지막 메시지로부터 3일 후 자동 삭제됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
+              <span>이 대화는 3일 후 만료됩니다. 서로를 존중하는 따뜻한 대화를 나눠주세요.</span>
             </div>
           )}
 
