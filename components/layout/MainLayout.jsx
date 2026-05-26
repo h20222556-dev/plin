@@ -128,7 +128,16 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
                   className={styles.fabButton}
                   onClick={() => setIsAddOpen(true)}
                 >
-                  <tab.icon size={28} color="white" strokeWidth={2.5} />
+                  <img
+                    src="/plin-logo.png"
+                    alt="기록하기"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '8px',
+                      objectFit: 'cover'
+                    }}
+                  />
                 </button>
               </div>
             );
