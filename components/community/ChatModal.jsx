@@ -332,19 +332,22 @@ export default function ChatModal({ chat, onClose }) {
   const showExtendButton = !isBlocked;
 
   const getTimeLeft = () => {
-    if (isBlocked) {
-      return '차단됨';
-    }
-    if (chatRoom?.is_extended) {
-      return '계속 대화 가능';
-    }
+    if (isBlocked) return '차단됨';
+    if (chatRoom?.is_extended) return '계속 대화 가능';
+
     const target = chatRoom?.expires_at || chat.expiresAt;
-    if (!target) {
-      return '';
-    }
+    if (!target) return '';
+
     const diff = new Date(target).getTime() - Date.now();
     if (diff <= 0) return '만료됨';
-    return ''; // 만료 전인 일반 대화방은 남은 시간 표시 제거
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) return `${days}일 ${hours}시간 남음`;
+    if (hours > 0) return `${hours}시간 ${minutes}분 남음`;
+    return `${minutes}분 남음`;
   };
 
   const nickname = opponent?.nickname || chat.recipientNickname || '알 수 없는 사용자';
