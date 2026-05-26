@@ -244,10 +244,7 @@ export default function ChatModal({ chat, onClose }) {
 
     const { error } = await supabase
       .from('chat_rooms')
-      .update({
-        expires_at: null,
-        is_extended: true
-      })
+      .update({ expires_at: null, is_extended: true })
       .eq('id', chat.roomId);
 
     if (error) {
@@ -256,13 +253,9 @@ export default function ChatModal({ chat, onClose }) {
       return;
     }
 
-    // 로컬 상태 즉시 업데이트
-    setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : null);
+    setChatRoom(prev => ({ ...prev, expires_at: null, is_extended: true }));
     setShowMenu(false);
     showToast('대화가 계속 이어집니다!');
-    
-    // DB에서 최신 상태 백그라운드에서 다시 불러오기
-    refetchChatRoom();
   };
 
   const handleBlock = async () => {
@@ -307,24 +300,17 @@ export default function ChatModal({ chat, onClose }) {
         return;
       }
 
-      // 로컬 상태 즉시 업데이트
-      setChatRoom(prev => prev ? { ...prev, is_blocked: true, blocked_by: currentUser.id } : null);
+      setChatRoom(prev => ({ ...prev, is_blocked: true, blocked_by: currentUser.id }));
       setShowBlockConfirm(false);
       setShowMenu(false);
       showToast('차단되었습니다.');
-
-      // DB에서 최신 상태 다시 불러오기
-      refetchChatRoom();
     } catch (err) {
       console.error('차단 처리 중 오류:', err);
     }
   };
 
   // 차단 및 만료 상태 계산
-  const isExpired = chatRoom?.expires_at
-    ? new Date(chatRoom.expires_at) < new Date()
-    : false;
-
+  const isExpired = chatRoom?.expires_at ? new Date(chatRoom.expires_at) < new Date() : false;
   const isBlocked = chatRoom?.is_blocked === true;
   const isReadOnly = isExpired || isBlocked;
 
