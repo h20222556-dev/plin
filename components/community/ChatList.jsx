@@ -143,7 +143,8 @@ export default function ChatList({ onOpenChat }) {
     return '방금';
   };
 
-  const getTimeLeft = (expiresAt) => {
+  const getTimeLeft = (expiresAt, isExtended) => {
+    if (isExtended) return '';
     if (!expiresAt) return null;
     const diff = new Date(expiresAt).getTime() - Date.now();
     if (diff <= 0) return null;
@@ -199,7 +200,7 @@ export default function ChatList({ onOpenChat }) {
       {/* Chat items */}
       <div className="stagger">
         {chats.map(chat => {
-          const timeLeft = getTimeLeft(chat.expiresAt);
+          const timeLeft = getTimeLeft(chat.expiresAt, chat.isExtended);
           return (
             <button
               key={chat.roomId}
@@ -227,8 +228,6 @@ export default function ChatList({ onOpenChat }) {
                   <span className={styles.expiredBadge} style={{ backgroundColor: '#ff3b30', color: 'white' }}>차단됨</span>
                 ) : chat.isExpired ? (
                   <span className={styles.expiredBadge}>만료됨</span>
-                ) : chat.isExtended ? (
-                  <span className={styles.timeBadge} style={{ color: 'var(--text-secondary)' }}><Clock size={12} style={{ marginRight: 2 }} /> 계속 대화 가능</span>
                 ) : null}
               </div>
             </button>
