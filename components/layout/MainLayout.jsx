@@ -128,16 +128,31 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
                   className={styles.fabButton}
                   onClick={() => setIsAddOpen(true)}
                 >
-                  <img
-                    src="/plin-logo.png"
-                    alt="기록하기"
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '8px',
-                      objectFit: 'cover'
-                    }}
-                  />
+                  <svg viewBox="0 0 48 48" width="34" height="34" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    {/* 상단 핀+음표 아이콘 */}
+                    <path d="M24 4 C17 4 12 9 12 15 C12 23 24 32 24 32 C24 32 36 23 36 15 C36 9 31 4 24 4 Z"
+                      fill="none" stroke="white" strokeWidth="2" strokeLinejoin="round"/>
+                    <path d="M21 10 L21 20 M21 10 C21 10 29 8 29 14 C29 18 21 19 21 19"
+                      fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="21" cy="23" r="2.5" fill="white"/>
+
+                    {/* 하단 지도 격자선 */}
+                    {/* 지도 외곽선 */}
+                    <rect x="6" y="34" width="36" height="12" rx="2"
+                      fill="none" stroke="white" strokeWidth="1.5"/>
+                    {/* 지도 가로선 */}
+                    <line x1="6" y1="39" x2="42" y2="39"
+                      stroke="white" strokeWidth="1" strokeOpacity="0.7"/>
+                    {/* 지도 세로선 */}
+                    <line x1="18" y1="34" x2="18" y2="46"
+                      stroke="white" strokeWidth="1" strokeOpacity="0.7"/>
+                    <line x1="30" y1="34" x2="30" y2="46"
+                      stroke="white" strokeWidth="1" strokeOpacity="0.7"/>
+                    {/* 지도 위에 작은 핀 점 */}
+                    <circle cx="24" cy="37" r="1.5" fill="white"/>
+                    <line x1="24" y1="38.5" x2="24" y2="40"
+                      stroke="white" strokeWidth="1" strokeLinecap="round"/>
+                  </svg>
                 </button>
               </div>
             );
