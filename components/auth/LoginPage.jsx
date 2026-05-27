@@ -15,7 +15,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
 
-  const { login, signup, loginWithGoogle, enterDemoMode } = useAuth();
+  const { login, signup, loginWithGoogle } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -170,17 +170,7 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <div className={styles.divider}>
-            <span>또는</span>
-          </div>
 
-          <button 
-            type="button"
-            className={styles.demoBtn}
-            onClick={() => enterDemoMode()}
-          >
-            데모로 사용해보기
-          </button>
         </div>
 
         <p className={styles.terms}>

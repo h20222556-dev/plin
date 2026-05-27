@@ -78,13 +78,6 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
     }
   };
 
-  const { isDemoMode } = useAuth();
-  const [showToast, setShowToast] = useState(false);
-
-  const handleDemoBadgeClick = () => {
-    setShowToast(true);
-    setTimeout(() => setShowToast(false), 3000);
-  };
 
   return (
     <div className={styles.layout}>
@@ -98,20 +91,7 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
           <UnifiedSearchBar onClick={() => setIsSearchOpen(true)} />
         </div>
 
-        {isDemoMode && (
-          <button className={styles.demoBadge} onClick={handleDemoBadgeClick}>
-            <span>데모 모드</span>
-            <Info size={14} />
-          </button>
-        )}
-      </header>
-
-      {/* Toast Notification */}
-      {showToast && (
-        <div className={styles.toast}>
-          실제 데이터는 저장되지 않습니다. 회원가입하면 기록이 영구 저장됩니다.
-        </div>
-      )}
+        </header>
 
       {/* Page Content */}
       <main className={styles.main}>

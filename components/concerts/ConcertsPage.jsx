@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { MOCK_PERFORMANCES } from '@/lib/mockData';
 import styles from './ConcertsPage.module.css';
 import ConcertDetailModal from './ConcertDetailModal';
 import dynamic from 'next/dynamic';
@@ -29,9 +28,7 @@ function persistSavedIds(ids) {
 }
 
 export default function ConcertsPage({ onNavigate, onOpenSearch }) {
-  const { isDemoMode } = useAuth();
-  // 데모 모드일 경우 Mock 데이터 사용
-  const [concerts, setConcerts] = useState(isDemoMode ? MOCK_PERFORMANCES : []);
+  const [concerts, setConcerts] = useState([]);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');

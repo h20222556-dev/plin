@@ -9,8 +9,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 export default function UserProfileModal({ user, onClose, onStartChat, isStartingChat }) {
   if (!user) return null;
 
-  const { isDemoMode } = useAuth();
-  const targetUserId = user.id === 'demo_user' ? '00000000-0000-0000-0000-000000000001' : user.id;
+  const targetUserId = user.id;
 
   const [records, setRecords] = useState([]);
   const [stats, setStats] = useState({ recordCount: 0, postCount: 0 });
@@ -25,10 +24,6 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
 
   useEffect(() => {
     const fetchChatBlockedAndRating = async () => {
-      if (targetUserId === '00000000-0000-0000-0000-000000000001' || targetUserId === 'demo_user') {
-        setAvgRating('4.5');
-        return;
-      }
 
       try {
         // users 테이블에서 is_chat_blocked 상태 조회
@@ -71,7 +66,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
           currentUserId = authUser.id;
         }
 
-        if (!currentUserId || targetUserId === '00000000-0000-0000-0000-000000000001' || currentUserId === 'demo_user') {
+        if (!currentUserId || currentUserId === targetUserId) {
           return;
         }
 
@@ -104,12 +99,6 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
 
       if (!currentUserId) {
         alert('로그인이 필요한 기능입니다.');
-        return;
-      }
-
-      if (targetUserId === '00000000-0000-0000-0000-000000000001' || currentUserId === 'demo_user') {
-        setIsFollowing(prev => !prev);
-        setFollowLoading(false);
         return;
       }
 
@@ -146,42 +135,30 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
   useEffect(() => {
     const fetchUserData = async () => {
       setLoadingRecords(true);
-      const PERF_TABLE = isDemoMode ? 'demo_performances' : 'performances';
-      const POSTS_TABLE = isDemoMode ? 'demo_posts' : 'posts';
 
       try {
-        // 공개 공연 기록 조회
-        let recQuery = supabase.from(PERF_TABLE).select('*');
-        if (isDemoMode) {
-          recQuery = recQuery.limit(5);
-        } else {
-          recQuery = recQuery.eq('user_id', targetUserId).eq('is_public', true).order('date', { ascending: false }).limit(5);
-        }
+        const { data: recData, error: recErr } = await supabase
+          .from('performances')
+          .select('*')
+          .eq('user_id', targetUserId)
+          .eq('is_public', true)
+          .order('date', { ascending: false })
+          .limit(5);
 
-        const { data: recData, error: recErr } = await recQuery;
         if (recErr) throw recErr;
 
         const formatted = (recData || []).map(r => ({
           id: r.id,
-          concert_name: r.name || r.concert_name || '알 수 없는 공연',
+          concert_name: r.concert_name || '알 수 없는 공연',
           artist: r.artist,
           date: r.date,
           venue: r.venue
         }));
         setRecords(formatted);
 
-        // 통계 (기록 수, 게시글 수)
-        let statsRecQuery = supabase.from(PERF_TABLE).select('id', { count: 'exact', head: true });
-        let statsPostQuery = supabase.from(POSTS_TABLE).select('id', { count: 'exact', head: true });
-
-        if (!isDemoMode) {
-          statsRecQuery = statsRecQuery.eq('user_id', targetUserId).eq('is_public', true);
-          statsPostQuery = statsPostQuery.eq('user_id', targetUserId);
-        }
-
         const [{ count: recCount }, { count: postCount }] = await Promise.all([
-          statsRecQuery,
-          statsPostQuery
+          supabase.from('performances').select('id', { count: 'exact', head: true }).eq('user_id', targetUserId).eq('is_public', true),
+          supabase.from('posts').select('id', { count: 'exact', head: true }).eq('user_id', targetUserId)
         ]);
         setStats({ recordCount: recCount || 0, postCount: postCount || 0 });
       } catch (err) {
@@ -192,7 +169,7 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
     };
 
     fetchUserData();
-  }, [targetUserId, isDemoMode]);
+  }, [targetUserId]);
 
   return (
     <div className={styles.overlay} onClick={e => e.target === e.currentTarget && onClose()}>

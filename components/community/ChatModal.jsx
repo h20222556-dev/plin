@@ -17,7 +17,7 @@ import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react
  * }
  */
 export default function ChatModal({ chat, onClose, isChatOpen = true }) {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
 
   const { messages, loading, sendMessage } = useChat(chat.roomId, chat.recipientId);
   const [input, setInput] = useState('');
@@ -37,25 +37,6 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
   const [showNotice, setShowNotice] = useState(false);
 
   const refetchChatRoom = useCallback(async () => {
-    if (isDemoMode) {
-      const { MOCK_CHATS } = require('@/lib/mockData');
-      const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
-      if (mockRoom) {
-        const data = {
-          id: mockRoom.roomId,
-          user_a_id: '00000000-0000-0000-0000-000000000001',
-          user_b_id: mockRoom.recipientId,
-          expires_at: mockRoom.expiresAt,
-          is_blocked: mockRoom.isBlocked ?? false,
-          blocked_by: mockRoom.blockedBy ?? null,
-          is_extended: mockRoom.isExtended ?? false,
-        };
-        setChatRoom(data);
-      }
-      setIsLoadingRoom(false);
-      return;
-    }
-
     const { data, error } = await supabase
       .from('chat_rooms')
       .select('*')
@@ -70,7 +51,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
 
     setChatRoom(data);
     setIsLoadingRoom(false);
-  }, [chat.roomId, isDemoMode]);
+  }, [chat.roomId]);
 
   useEffect(() => {
     const key = "noticed_room_" + chat.roomId;
@@ -82,29 +63,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
 
   useEffect(() => {
     refetchChatRoom();
-
-    if (isDemoMode) return;
-
-    const channelName = `chat_room_${chat.roomId}`;
-    const existingChannel = supabase.channel(channelName);
-    supabase.removeChannel(existingChannel);
-
-    const roomChannel = supabase
-      .channel(channelName)
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'chat_rooms', filter: `id=eq.${chat.roomId}` },
-        (payload) => {
-          const updatedRoom = payload.new;
-          setChatRoom(updatedRoom);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(roomChannel);
-    };
-  }, [chat.roomId, isDemoMode, refetchChatRoom]);
+  }, [chat.roomId, refetchChatRoom]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -112,27 +71,6 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
 
   useEffect(() => {
     const fetchOpponent = async () => {
-      if (isDemoMode) {
-        const { MOCK_CHATS } = require('@/lib/mockData');
-        const mockRoom = MOCK_CHATS.find(r => r.roomId === chat.roomId);
-        if (mockRoom) {
-          setOpponent({
-            id: mockRoom.recipientId,
-            nickname: mockRoom.recipientNickname,
-            profile_emoji: mockRoom.recipientEmoji || '🧑‍🎤',
-            bio: 'PLIN 공연 메이트입니다!'
-          });
-        } else {
-          setOpponent({
-            id: chat.recipientId,
-            nickname: chat.recipientNickname || '데모 상대방',
-            profile_emoji: '🧑‍🎤',
-            bio: 'PLIN 공연 메이트입니다!'
-          });
-        }
-        return;
-      }
-
       try {
         const { data: { user: currentUser } } = await supabase.auth.getUser();
         if (!currentUser) return;
@@ -166,7 +104,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
     };
 
     fetchOpponent();
-  }, [chat.roomId, chat.recipientId, isDemoMode]);
+  }, [chat.roomId, chat.recipientId]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -176,45 +114,30 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
   };
 
   useEffect(() => {
-    const fetchExistingRating = async () => {
-      const myUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
-      const otherUserId = opponent?.id;
-      if (!myUserId || !otherUserId) return;
-
-      if (isDemoMode) return;
-
-      try {
-        const { data, error } = await supabase
-          .from('user_ratings')
-          .select('rating')
-          .eq('rater_id', myUserId)
-          .eq('rated_id', otherUserId)
-          .maybeSingle();
-
-        if (!error && data) {
-          setSelectedRating(data.rating);
-        }
-      } catch (err) {
-        console.error('Error fetching rating:', err);
-      }
-    };
-
     if (showRatingModal && opponent?.id) {
+      const fetchExistingRating = async () => {
+        if (!user?.id || !opponent?.id) return;
+        try {
+          const { data, error } = await supabase
+            .from('user_ratings')
+            .select('rating')
+            .eq('rater_id', user.id)
+            .eq('rated_id', opponent.id)
+            .maybeSingle();
+          if (!error && data) {
+            setSelectedRating(data.rating);
+          }
+        } catch (err) {
+          console.error('Error fetching rating:', err);
+        }
+      };
       fetchExistingRating();
     }
-  }, [showRatingModal, opponent?.id, isDemoMode, user?.id]);
+  }, [showRatingModal, opponent?.id, user?.id]);
 
   const handleSaveRating = async () => {
-    const myUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
-    const otherUserId = opponent?.id;
-    if (!myUserId || !otherUserId) {
+    if (!user?.id || !opponent?.id) {
       alert('평가 대상을 찾을 수 없습니다.');
-      return;
-    }
-
-    if (isDemoMode) {
-      showToast('평가가 완료됐어요!');
-      setShowRatingModal(false);
       return;
     }
 
@@ -222,8 +145,8 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
       const { error } = await supabase
         .from('user_ratings')
         .upsert({
-          rater_id: myUserId,
-          rated_id: otherUserId,
+          rater_id: user.id,
+          rated_id: opponent.id,
           rating: selectedRating,
           chat_room_id: chat.roomId
         }, { onConflict: 'rater_id,rated_id' });
@@ -245,13 +168,6 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
   };
 
   const handleExtendChat = async () => {
-    if (isDemoMode) {
-      setChatRoom(prev => prev ? { ...prev, expires_at: null, is_extended: true } : prev);
-      setShowMenu(false);
-      showToast('대화가 계속 이어집니다! (데모 모드)');
-      return;
-    }
-
     const { error } = await supabase
       .from('chat_rooms')
       .update({ expires_at: null, is_extended: true })
@@ -270,14 +186,6 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
 
   const handleBlock = async () => {
     if (!opponent) return;
-
-    if (isDemoMode) {
-      const data = chatRoom ? { ...chatRoom, is_blocked: true, blocked_by: user?.id } : null;
-      setChatRoom(data);
-      setShowBlockConfirm(false);
-      showToast('차단되었습니다. 더 이상 대화를 이어갈 수 없습니다. (데모 모드)');
-      return;
-    }
 
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser();

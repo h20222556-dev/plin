@@ -7,15 +7,13 @@ import styles from './PostDetailModal.module.css';
 import { X, Heart, MessageCircle, ArrowUp, User, Music } from 'lucide-react';
 
 export default function PostDetailModal({ post: initialPost, onClose, onLike }) {
-  const { user, isDemoMode } = useAuth();
-  const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
+  const { user } = useAuth();
 
   const [post, setPost] = useState(initialPost);
   const [commentsList, setCommentsList] = useState([]);
   const [commentInput, setCommentInput] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
-  const COMMENTS_TABLE = isDemoMode ? 'demo_comments' : 'comments';
 
   useEffect(() => {
     setPost(initialPost);
@@ -24,21 +22,11 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
   const fetchComments = async () => {
     setLoadingComments(true);
     try {
-      let query;
-      if (isDemoMode) {
-        query = supabase
-          .from(COMMENTS_TABLE)
-          .select('*')
-          .eq('post_id', post.id)
-          .order('created_at', { ascending: true });
-      } else {
-        query = supabase
-          .from(COMMENTS_TABLE)
-          .select('*, users(nickname, profile_emoji)')
-          .eq('post_id', post.id)
-          .order('created_at', { ascending: true });
-      }
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*, users(nickname, profile_emoji)')
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true });
       if (error) throw error;
       setCommentsList(data || []);
     } catch (err) {
@@ -56,33 +44,26 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
 
   const handleAddComment = async () => {
     if (!commentInput.trim()) return;
-    if (!currentUserId) {
+    if (!user?.id) {
       alert('로그인이 필요합니다.');
       return;
     }
 
     try {
-      let insertQuery = supabase
-        .from(COMMENTS_TABLE)
+      const { data: newComment, error } = await supabase
+        .from('comments')
         .insert([{
           post_id: post.id,
-          user_id: currentUserId,
+          user_id: user.id,
           content: commentInput.trim()
-        }]);
-
-      if (isDemoMode) {
-        insertQuery = insertQuery.select('*').single();
-      } else {
-        insertQuery = insertQuery.select('*, users(nickname, profile_emoji)').single();
-      }
-
-      const { data: newComment, error } = await insertQuery;
+        }])
+        .select('*, users(nickname, profile_emoji)')
+        .single();
 
       if (error) throw error;
       setCommentInput('');
       setCommentsList(prev => [...prev, newComment]);
       
-      // Update local post comment count
       setPost(prev => ({
         ...prev,
         comments: (prev.comments || 0) + 1
@@ -161,9 +142,9 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
           <p className={styles.postContent}>{post.content}</p>
 
           {/* Photos - Gallery */}
-          {post.photos && post.photos.length > 0 && (
+          {post.images && post.images.length > 0 && (
             <div className={styles.photoGallery}>
-              {post.photos.map((p, i) => (
+              {post.images.map((p, i) => (
                 <div key={i} className={styles.photoWrapper}>
                   <img src={p} alt={`Post attachment ${i + 1}`} className={styles.photo} />
                 </div>
@@ -205,8 +186,8 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
                 <div className={styles.emptyComments}>아직 댓글이 없습니다. 첫 댓글을 남겨보세요! 💬</div>
               ) : (
                 commentsList.map(c => {
-                  const nickname = isDemoMode ? '데모 사용자' : (c.users?.nickname || '알 수 없는 유저');
-                  const emoji = isDemoMode ? '✨' : (c.users?.profile_emoji || '🧑‍🎤');
+                  const nickname = c.users?.nickname || '알 수 없는 유저';
+                  const emoji = c.users?.profile_emoji || '🧑‍🎼';
                   return (
                     <div key={c.id} className={styles.commentItem}>
                       <div className={styles.commentAvatar}>{emoji}</div>
