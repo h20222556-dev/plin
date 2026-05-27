@@ -1,12 +1,16 @@
 .overlay {
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   background-color: rgba(0, 0, 0, 0.5); /* 어두운 오버레이 */
   z-index: 2000;
   display: flex;
   flex-direction: column;
   justify-content: flex-end; /* 모바일: 아래에 밀착 */
   align-items: center;
+  overflow: hidden;
 }
 
 .modal {
@@ -119,6 +123,7 @@
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   position: relative;
   background-color: var(--bg-primary);
 }
