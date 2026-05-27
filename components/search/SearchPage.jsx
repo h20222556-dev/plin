@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/lib/supabase';
 import styles from './SearchPage.module.css';
 
 const FILTERS = [
@@ -15,6 +16,22 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
   const [focused, setFocused] = useState(false);
+  const [popularTags, setPopularTags] = useState(['aespa', '뉴진스', '콜드플레이내한', 'BTS', '인생공연', '공연메이트구해요']);
+
+  useEffect(() => {
+    const fetchPopularTags = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_popular_keywords');
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setPopularTags(data.map(item => item.keyword));
+        }
+      } catch (err) {
+        console.error('인기 태그 로드 실패:', err.message);
+      }
+    };
+    fetchPopularTags();
+  }, []);
 
   const hasQuery = query.trim().length > 0;
 
@@ -68,14 +85,14 @@ export default function SearchPage() {
           <div className={styles.discover}>
             <h2 className={styles.discoverTitle}>트렌딩 🔥</h2>
             <div className={styles.trendingList}>
-              {['#aespa', '#뉴진스', '#콜드플레이내한', '#BTS', '#인생공연', '#공연메이트구해요'].map((tag, i) => (
+              {popularTags.map((tag, i) => (
                 <button
                   key={tag}
                   className={styles.trendingTag}
-                  onClick={() => setQuery(tag.replace('#', ''))}
+                  onClick={() => setQuery(tag)}
                 >
                   <span className={styles.trendingRank}>{i + 1}</span>
-                  <span className={styles.trendingText}>{tag}</span>
+                  <span className={styles.trendingText}>#{tag}</span>
                 </button>
               ))}
             </div>

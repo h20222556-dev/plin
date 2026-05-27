@@ -430,3 +430,39 @@ VALUES
   ('22222222-2222-2222-2222-222222222222', '정리 감사합니다! 셋리 대박이네요.', NOW() - INTERVAL '12 hours')
 ON CONFLICT DO NOTHING;
 
+
+-- ──────────────────────────────────────
+-- 10. 인기 검색어 (search_logs) 및 RPC 기능 추가
+-- ──────────────────────────────────────
+CREATE TABLE IF NOT EXISTS public.search_logs (
+  id          UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  keyword     TEXT        NOT NULL,
+  searched_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS search_logs_searched_at_idx ON public.search_logs(searched_at DESC);
+CREATE INDEX IF NOT EXISTS search_logs_keyword_idx ON public.search_logs(keyword);
+
+-- RLS 활성화 및 전체 익명/로그인 사용자 인서트 및 셀렉트 정책
+ALTER TABLE public.search_logs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public insert search_logs" ON public.search_logs FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Allow public select search_logs" ON public.search_logs FOR SELECT USING (TRUE);
+
+-- 최근 7일 이내의 가장 많이 검색된 키워드 6개 가져오는 RPC 함수
+CREATE OR REPLACE FUNCTION public.get_popular_keywords()
+RETURNS TABLE (keyword TEXT, count BIGINT)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT sl.keyword, COUNT(*)::BIGINT as cnt
+  FROM public.search_logs sl
+  WHERE sl.searched_at >= NOW() - INTERVAL '7 days'
+  GROUP BY sl.keyword
+  ORDER BY cnt DESC, sl.keyword ASC
+  LIMIT 6;
+END;
+$$;
+
+
