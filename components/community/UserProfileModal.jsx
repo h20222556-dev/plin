@@ -185,7 +185,13 @@ export default function UserProfileModal({ user, onClose, onStartChat, isStartin
         <div className={styles.content}>
           <div className={styles.profileTop}>
             <div className={styles.avatar}>
-              <User size={48} color="#0054CB" />
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.nickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : user.profileEmoji ? (
+                <span style={{ fontSize: 32 }}>{user.profileEmoji}</span>
+              ) : (
+                <User size={48} color="#0054CB" />
+              )}
             </div>
             <h2 className={styles.nickname}>
               {user.nickname}

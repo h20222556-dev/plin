@@ -58,6 +58,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
       id: u.id,
       nickname: u.nickname,
       profileEmoji: u.profileEmoji || '🧑‍🎤',
+      avatarUrl: u.avatarUrl || null,
       isPublic: u.isPublic ?? true,
       bio: u.bio || ''
     });
@@ -263,7 +264,13 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                   <div className={styles.sectionGrid}>
                     {results.posts.slice(0, 3).map((p) => (
                       <div key={p.id} className={styles.resultCard} onClick={handleCommunityClick}>
-                        <span className={styles.profileEmojiBadge}>{p.author.profileEmoji}</span>
+                        <span className={styles.profileEmojiBadge} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {p.author.avatarUrl ? (
+                            <img src={p.author.avatarUrl} alt={p.author.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            p.author.profileEmoji
+                          )}
+                        </span>
                         <div className={styles.cardInfo}>
                           <div className={styles.authorRow}>
                             <span className={styles.authorName}>{p.author.nickname}</span>
@@ -303,7 +310,13 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
                           onClose();
                         }}
                       >
-                        <span className={styles.profileEmojiBadge}>{u.profileEmoji}</span>
+                        <span className={styles.profileEmojiBadge} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {u.avatarUrl ? (
+                            <img src={u.avatarUrl} alt={u.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            u.profileEmoji
+                          )}
+                        </span>
                         <div className={styles.cardInfo}>
                           <h4 className={styles.cardTitle}>
                             {u.nickname}
