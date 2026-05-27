@@ -83,11 +83,12 @@ export default function RecordCalendar({ records, onSelectRecord, onRecordSelect
             const dayRecords = recordsByDate[key] || [];
             const hasRecord = dayRecords.length > 0;
             const isSelected = selectedDate === key;
+            const isToday = isSameDay(day, new Date());
 
             return (
               <button
                 key={key}
-                className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''} ${isSelected ? styles.daySelected : ''}`}
+                className={`${styles.day} ${hasRecord ? styles.dayHasRecord : ''} ${isSelected ? styles.daySelected : ''} ${isToday ? styles.dayToday : ''}`}
                 onClick={() => handleDateClick(key)}
               >
                 <span className={styles.dayNum}>{format(day, 'd')}</span>

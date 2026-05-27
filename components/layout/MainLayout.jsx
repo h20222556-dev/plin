@@ -131,7 +131,7 @@ export default function MainLayout({ initialTab = 'records', initialSection = 'p
             >
               <tab.icon 
                 size={24} 
-                color={activeTab === tab.id ? '#0054CB' : '#667085'} 
+                color={activeTab === tab.id ? '#2563EB' : '#6B7280'} 
                 strokeWidth={activeTab === tab.id ? 2.5 : 2}
               />
               <span className={styles.tabLabel}>{tab.label}</span>
