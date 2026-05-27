@@ -338,31 +338,12 @@ export default function ChatList({ onOpenChat }) {
       {/* AI Recommendation Panel */}
       {showRecs && (
         <div 
-          className="modal-overlay" 
+          className={`modal-overlay ${styles.overlay}`} 
           onClick={e => e.target === e.currentTarget && setShowRecs(false)}
           onTouchMove={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, background: 'rgba(0,0,0,0.5)' }}
         >
           <div 
-            className="modal-sheet" 
-            style={{ 
-              position: 'fixed', 
-              top: 0, 
-              left: 0, 
-              width: '100%', 
-              height: '100dvh', 
-              zIndex: 10000, 
-              overflowY: 'auto', 
-              WebkitOverflowScrolling: 'touch', 
-              overscrollBehavior: 'contain', 
-              background: 'white', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              gap: '16px',
-              padding: '24px 20px',
-              borderRadius: 0,
-              maxHeight: '100dvh'
-            }}
+            className={`modal-sheet ${styles.sheet}`} 
           >
             <div className="modal-handle" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
