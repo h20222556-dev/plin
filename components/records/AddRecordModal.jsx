@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useScrollLock } from '@/lib/hooks/useScrollLock';
+import { useAuth } from '@/lib/hooks/useAuth';
+import { supabase } from '@/lib/supabase';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
@@ -30,6 +32,7 @@ export default function AddRecordModal({ isOpen = true, onClose, onSave, initial
   const isEditing = !!initialData?.id;
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
+  const { user } = useAuth();
   
   // 지도 모달 관련 상태
   const [isMapOpen, setIsMapOpen] = useState(false);
@@ -118,7 +121,26 @@ export default function AddRecordModal({ isOpen = true, onClose, onSave, initial
     }
   };
 
-  const handlePhotoUpload = (e) => {
+  const uploadPerformanceImage = async (file) => {
+    if (!user?.id) return null;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      const { error } = await supabase.storage
+        .from('performance-images')
+        .upload(fileName, file);
+      if (error) throw error;
+      const { data } = supabase.storage
+        .from('performance-images')
+        .getPublicUrl(fileName);
+      return data.publicUrl;
+    } catch (err) {
+      console.error('Performance image upload error:', err);
+      return null;
+    }
+  };
+
+  const handlePhotoUpload = async (e) => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     
@@ -126,8 +148,21 @@ export default function AddRecordModal({ isOpen = true, onClose, onSave, initial
       alert('사진은 최대 10장까지 업로드할 수 있습니다.');
       return;
     }
-    const newPhotos = files.map(file => URL.createObjectURL(file));
-    set('photos', [...form.photos, ...newPhotos]);
+
+    // 임시 미리보기용 blob URL 먼저 추가
+    const blobUrls = files.map(file => URL.createObjectURL(file));
+    set('photos', [...form.photos, ...blobUrls]);
+
+    // Storage 업로드 후 URL 교체
+    const uploadedUrls = await Promise.all(files.map(uploadPerformanceImage));
+    const validUrls = uploadedUrls.filter(Boolean);
+    if (validUrls.length > 0) {
+      set('photos', prev => {
+        // blob URL들을 Storage URL로 교체
+        const withoutBlobs = prev.filter(p => !blobUrls.includes(p));
+        return [...withoutBlobs, ...validUrls];
+      });
+    }
   };
 
   useScrollLock(isOpen);

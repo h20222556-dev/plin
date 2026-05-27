@@ -15,7 +15,7 @@ import { getOrCreateChatRoom } from '@/lib/hooks/useChat';
 export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const { query, setQuery, results, loading } = useUnifiedSearch();
   const { setFocusedRecord } = useRecords();
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
   const inputRef = useRef(null);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -64,14 +64,10 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
   };
 
   const handleStartChat = async (targetUser) => {
-    let currentUserId = null;
-    if (isDemoMode) {
-      currentUserId = '00000000-0000-0000-0000-000000000001';
-    } else {
+    let currentUserId = user?.id;
+    if (!currentUserId) {
       const { data: { user: authUser } } = await supabase.auth.getUser();
-      if (authUser) {
-        currentUserId = authUser.id;
-      }
+      currentUserId = authUser?.id;
     }
 
     if (!currentUserId) {

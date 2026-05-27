@@ -7,8 +7,7 @@ import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 
 export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPostClick }) {
-  const { user, isDemoMode } = useAuth();
-  const currentUserId = isDemoMode ? '00000000-0000-0000-0000-000000000001' : user?.id;
+  const { user } = useAuth();
   const authorId = post.author?.id;
   const isAuthor = user && user.id === authorId;
   const [showComments, setShowComments] = useState(false);
@@ -26,26 +25,15 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
   const [commentsList, setCommentsList] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
 
-  const COMMENTS_TABLE = isDemoMode ? 'demo_comments' : 'comments';
 
   const fetchComments = async () => {
     setLoadingComments(true);
     try {
-      let query;
-      if (isDemoMode) {
-        query = supabase
-          .from(COMMENTS_TABLE)
-          .select('*')
-          .eq('post_id', post.id)
-          .order('created_at', { ascending: true });
-      } else {
-        query = supabase
-          .from(COMMENTS_TABLE)
-          .select('*, users(nickname, profile_emoji)')
-          .eq('post_id', post.id)
-          .order('created_at', { ascending: true });
-      }
-      const { data, error } = await query;
+      const { data, error } = await supabase
+        .from('comments')
+        .select('*, users(nickname, profile_emoji)')
+        .eq('post_id', post.id)
+        .order('created_at', { ascending: true });
       if (error) throw error;
       setCommentsList(data || []);
     } catch (err) {
@@ -57,27 +45,21 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
 
   const handleAddComment = async () => {
     if (!commentInput.trim()) return;
-    if (!currentUserId) {
+    if (!user?.id) {
       alert('로그인이 필요합니다.');
       return;
     }
 
     try {
-      let insertQuery = supabase
-        .from(COMMENTS_TABLE)
+      const { data: newComment, error } = await supabase
+        .from('comments')
         .insert([{
           post_id: post.id,
-          user_id: currentUserId,
+          user_id: user.id,
           content: commentInput.trim()
-        }]);
-
-      if (isDemoMode) {
-        insertQuery = insertQuery.select('*').single();
-      } else {
-        insertQuery = insertQuery.select('*, users(nickname, profile_emoji)').single();
-      }
-
-      const { data: newComment, error } = await insertQuery;
+        }])
+        .select('*, users(nickname, profile_emoji)')
+        .single();
 
       if (error) throw error;
       setCommentInput('');
@@ -105,7 +87,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
 
     try {
       const { error } = await supabase
-        .from(COMMENTS_TABLE)
+        .from('comments')
         .update({
           content: editingContent.trim(),
           updated_at: new Date().toISOString()
@@ -136,7 +118,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
 
     try {
       const { error } = await supabase
-        .from(COMMENTS_TABLE)
+        .from('comments')
         .delete()
         .eq('id', commentId);
 
@@ -233,6 +215,19 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
       <div onClick={() => onPostClick && onPostClick(post)} style={{ cursor: onPostClick ? 'pointer' : 'default' }}>
         <p className={styles.content}>{post.content}</p>
 
+        {/* Images */}
+        {post.images && post.images.length > 0 && (
+          <div className={styles.imageGallery} onClick={(e) => {
+            // 이미지 클릭 시 상세 모달 오픈도 트리거되도록 하지만 이미지 자체 드래그 등 고려해 전파 허용
+          }}>
+            {post.images.map((img, i) => (
+              <div key={i} className={styles.imageWrapper}>
+                <img src={img} alt={`Post image ${i + 1}`} className={styles.postImage} />
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Tags */}
         {post.tags && post.tags.length > 0 && (
           <div className={styles.tags}>
@@ -307,15 +302,15 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
               <div style={{ textAlign: 'center', padding: '10px', fontSize: 12, color: '#667085' }}>첫 댓글을 작성해보세요! 💬</div>
             ) : (
               commentsList.map(c => {
-                const nickname = isDemoMode ? '데모 사용자' : (c.users?.nickname || '알 수 없는 유저');
-                const emoji = isDemoMode ? '✨' : (c.users?.profile_emoji || '🧑‍🎤');
+                const nickname = c.users?.nickname || '알 수 없는 유저';
+                const emoji = c.users?.profile_emoji || '🧑‍🎼';
                 return (
                   <div key={c.id} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: '1px solid #F2F4F7', alignItems: 'flex-start' }}>
                     <span style={{ fontSize: 16 }}>{emoji}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>
-                        {c.user_id === currentUserId && editingCommentId !== c.id && (
+                        {c.user_id === user?.id && editingCommentId !== c.id && (
                           <div style={{ display: 'flex', gap: '6px' }}>
                             <button
                               onClick={() => handleStartEdit(c)}

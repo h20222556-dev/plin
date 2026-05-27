@@ -48,20 +48,16 @@ export default function UserProfilePage({ params }) {
         setIsChatBlocked(userData.is_chat_blocked || false);
 
         // Fetch user ratings
-        if (userId === '00000000-0000-0000-0000-000000000001' || userId === 'demo_user') {
-          setAvgRating('4.5');
-        } else {
-          const { data: ratingData, error: ratingError } = await supabase
-            .from('user_ratings')
-            .select('rating')
-            .eq('rated_id', userId);
+        const { data: ratingData, error: ratingError } = await supabase
+          .from('user_ratings')
+          .select('rating')
+          .eq('rated_id', userId);
 
-          if (!ratingError && ratingData && ratingData.length > 0) {
-            const avg = (ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length).toFixed(1);
-            setAvgRating(avg);
-          } else {
-            setAvgRating(null);
-          }
+        if (!ratingError && ratingData && ratingData.length > 0) {
+          const avg = (ratingData.reduce((sum, r) => sum + r.rating, 0) / ratingData.length).toFixed(1);
+          setAvgRating(avg);
+        } else {
+          setAvgRating(null);
         }
 
         // Reset active tab if followers tab is private and currently selected
@@ -71,13 +67,10 @@ export default function UserProfilePage({ params }) {
         }
 
         // 2. Fetch records (performances)
-        const isDemo = userId === '00000000-0000-0000-0000-000000000001' || userId === 'demo_user';
-        const tableName = isDemo ? 'demo_performances' : 'performances';
-        
         const { data: recordsData, error: recordsError } = await supabase
-          .from(tableName)
+          .from('performances')
           .select('*')
-          .eq(isDemo ? 'userId' : 'user_id', userId)
+          .eq('user_id', userId)
           .order('date', { ascending: false });
 
         if (!recordsError) {
@@ -85,9 +78,8 @@ export default function UserProfilePage({ params }) {
         }
 
         // 3. Fetch posts
-        const postsTable = isDemo ? 'demo_posts' : 'posts';
         const { data: postsData, error: postsError } = await supabase
-          .from(postsTable)
+          .from('posts')
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });

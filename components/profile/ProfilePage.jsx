@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ProfilePage.module.css';
-import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight } from 'lucide-react';
+import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight, Camera } from 'lucide-react';
 
 export default function ProfilePage({ initialSection = 'profile', onRecordNavigate }) {
   const auth = useAuth();
@@ -13,7 +13,7 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
   const logout = auth?.logout ?? (() => {});
   const updateProfile = auth?.updateProfile ?? (() => {});
   const { records } = useRecords();
-  const [activeSection, setActiveSection] = useState(initialSection); // profile | settings
+  const [activeSection, setActiveSection] = useState(initialSection);
   const [editMode, setEditMode] = useState(false);
   const [nickname, setNickname] = useState(user?.nickname || '');
   const [isPublic, setIsPublic] = useState(false);
@@ -24,14 +24,17 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
   const [showFollowers, setShowFollowers] = useState(false);
   const [followerCount, setFollowerCount] = useState(0);
 
-  const isDemoMode = auth?.isDemoMode ?? false;
   const [blockedUsers, setBlockedUsers] = useState([]);
 
-  // 내 평균 별점 및 평가 수 상태 추가
+  // 내 평균 별점 및 평가 수 상태
   const [myRating, setMyRating] = useState(null);
   const [ratingCount, setRatingCount] = useState(0);
 
-  // Sync nickname only, since it is edited via a different save button
+  // 프로필 사진 업로드
+  const avatarInputRef = useRef(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+
+  // Sync nickname only
   useEffect(() => {
     if (user) {
       setNickname(user.nickname || '');
@@ -84,20 +87,7 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
     if (!user?.id || activeSection !== 'settings') return;
 
     const fetchBlockedUsers = async () => {
-      if (isDemoMode) {
-        setBlockedUsers([
-          {
-            id: 'mock-block-1',
-            blocked_id: 'demo-user-2',
-            created_at: new Date().toISOString(),
-            user: { nickname: '안유진진자라', profile_emoji: '🐶' }
-          }
-        ]);
-        return;
-      }
-
       try {
-        // JOIN 대신 두 번 조회하는 방식으로 수정
         const { data: blockList, error } = await supabase
           .from('blocked_users')
           .select('id, blocked_id, created_at')
@@ -133,19 +123,13 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
     };
 
     fetchBlockedUsers();
-  }, [user?.id, activeSection, isDemoMode]);
+  }, [user?.id, activeSection]);
 
   // 내 별점 평점 fetch
   useEffect(() => {
     if (!user?.id || activeSection !== 'settings') return;
 
     const fetchMyRatings = async () => {
-      if (isDemoMode) {
-        setMyRating('4.2');
-        setRatingCount(12);
-        return;
-      }
-
       try {
         const { data, error } = await supabase
           .from('user_ratings')
@@ -166,17 +150,48 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
     };
 
     fetchMyRatings();
-  }, [user?.id, activeSection, isDemoMode]);
+  }, [user?.id, activeSection]);
+
+  // 프로필 사진 업로드
+  const uploadAvatar = async (file) => {
+    if (!user?.id || !file) return;
+    setAvatarUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 캐시 버스팅을 위해 타임스탬프 추가
+      const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+
+      await supabase
+        .from('users')
+        .update({ avatar_url: avatarUrl })
+        .eq('id', user.id);
+
+      // auth context setUser 즉시 반영
+      if (auth?.setUser) {
+        auth.setUser(prev => ({ ...prev, avatar_url: avatarUrl }));
+      }
+    } catch (err) {
+      console.error('Avatar upload error:', err);
+      alert('사진 업로드에 실패했습니다.');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const handleUnblock = async (blockId) => {
     const confirmed = window.confirm('차단을 해제하시겠습니까?');
     if (!confirmed) return;
-
-    if (isDemoMode) {
-      setBlockedUsers(prev => prev.filter(b => b.id !== blockId));
-      alert('차단이 해제되었습니다. (데모 모드)');
-      return;
-    }
 
     const blockedItem = blockedUsers.find(b => b.id === blockId);
     const blockedUserId = blockedItem?.blocked_id;
@@ -233,7 +248,6 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
 
       if (error) throw error;
 
-      // Also update auth context so other components stay in sync immediately
       if (auth?.updateProfile) {
         auth.updateProfile({
           isPublic: settings.isPublic,
@@ -314,9 +328,74 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
             {/* Profile card */}
             <div className={styles.profileCard}>
               <div className={styles.profileTop}>
-                <div className={styles.avatarLarge}>
-                   <User size={32} color="#667085" />
+                {/* 프로필 사진 영역 */}
+                <div
+                  className={styles.avatarLarge}
+                  style={{ position: 'relative', cursor: 'pointer' }}
+                  onClick={() => avatarInputRef.current?.click()}
+                  title="프로필 사진 변경"
+                >
+                  {user?.avatar_url ? (
+                    <img
+                      src={user.avatar_url}
+                      alt="프로필 사진"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        borderRadius: '50%',
+                      }}
+                    />
+                  ) : user?.profile_emoji ? (
+                    <span style={{ fontSize: '32px' }}>{user.profile_emoji}</span>
+                  ) : (
+                    <User size={32} color="#667085" />
+                  )}
+                  {/* 카메라 오버레이 */}
+                  <div style={{
+                    position: 'absolute',
+                    bottom: 0,
+                    right: 0,
+                    width: '24px',
+                    height: '24px',
+                    background: 'var(--primary, #0054CB)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '2px solid white',
+                    opacity: avatarUploading ? 0.5 : 1,
+                  }}>
+                    <Camera size={12} color="white" />
+                  </div>
+                  {avatarUploading && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      borderRadius: '50%',
+                      background: 'rgba(0,0,0,0.35)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: 'white',
+                      fontWeight: 600,
+                    }}>
+                      업로드 중
+                    </div>
+                  )}
                 </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadAvatar(file);
+                    e.target.value = '';
+                  }}
+                />
 
                 <div className={styles.profileInfo}>
                   {editMode ? (

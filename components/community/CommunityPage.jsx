@@ -22,7 +22,7 @@ const TABS = [
 export default function CommunityPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState('feed');
-  const { posts, loading, createPost, toggleLike, deletePost: deletePostFn, isDemoMode } = useCommunity();
+  const { posts, loading, createPost, toggleLike, deletePost: deletePostFn } = useCommunity();
   const { user } = useAuth();
   const [showNewPost, setShowNewPost] = useState(false);
   const [activeChat, setActiveChat] = useState(null); // { roomId, recipientId, recipientNickname, expiresAt }
@@ -201,7 +201,7 @@ export default function CommunityPage() {
         <NewPostModal
           onClose={() => setShowNewPost(false)}
           onPost={async (postData) => {
-            await createPost(postData.content, postData.tags, postData.emotion, postData.performanceId);
+            await createPost(postData.content, postData.tags, postData.emotion, postData.performanceId, postData.images);
             setShowNewPost(false);
           }}
         />

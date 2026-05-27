@@ -8,7 +8,7 @@ import { Sparkles, Clock, User, X, Loader2 } from 'lucide-react';
 import { getRecommendedMates } from '@/lib/recommendMates';
 
 export default function ChatList({ onOpenChat }) {
-  const { user, isDemoMode } = useAuth();
+  const { user } = useAuth();
   const [chats, setChats] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -123,8 +123,6 @@ export default function ChatList({ onOpenChat }) {
     }
   };
 
-  // 데모 여부에 따른 테이블명 결정
-  const CHATS_TABLE = isDemoMode ? 'demo_chats' : 'chats';
 
   useEffect(() => {
     if (!user) return;
@@ -152,9 +150,9 @@ export default function ChatList({ onOpenChat }) {
               .eq('id', recipientId)
               .single();
 
-            // 마지막 메시지 (분리된 테이블에서 조회)
+            // 마지막 메시지
             const { data: lastMsgData } = await supabase
-              .from(CHATS_TABLE)
+              .from('chats')
               .select('message, created_at, sender_id, is_read')
               .eq('room_id', room.id)
               .order('created_at', { ascending: false })
@@ -162,9 +160,9 @@ export default function ChatList({ onOpenChat }) {
 
             const lastMsg = lastMsgData?.[0] || null;
 
-            // 읽지 않은 메시지 수 (분리된 테이블에서 조회)
+            // 읽지 않은 메시지 수
             const { count: unread } = await supabase
-              .from(CHATS_TABLE)
+              .from('chats')
               .select('id', { count: 'exact', head: true })
               .eq('room_id', room.id)
               .eq('receiver_id', user.id)
@@ -191,41 +189,9 @@ export default function ChatList({ onOpenChat }) {
           })
         );
 
-        if (isDemoMode) {
-          const { MOCK_CHATS } = require('@/lib/mockData');
-          const mockEnriched = MOCK_CHATS.map(mc => {
-            const isExpired = mc.expiresAt
-              ? new Date(mc.expiresAt) < new Date()
-              : false;
-            return {
-              roomId: mc.roomId,
-              recipientId: mc.recipientId,
-              recipientNickname: mc.recipientNickname,
-              recipientEmoji: mc.recipientEmoji,
-              lastMessage: mc.lastMessage,
-              lastMessageAt: mc.lastMessageAt,
-              expiresAt: mc.expiresAt,
-              unread: mc.unread,
-              isExpired,
-              isBlocked: mc.isBlocked || false,
-              blockedBy: mc.blockedBy || null,
-              isExtended: mc.isExtended || false,
-            };
-          });
-
-          // Prepend mock chats, keeping roomIds unique
-          const combined = [...mockEnriched];
-          enriched.forEach(c => {
-            if (!combined.some(x => x.roomId === c.roomId)) {
-              combined.push(c);
-            }
-          });
-          setChats(combined);
-        } else {
-          setChats(enriched);
-        }
+        setChats(enriched);
       } catch (err) {
-        console.error(`Error fetching chats from ${CHATS_TABLE}:`, err.message);
+        console.error('Error fetching chats:', err.message);
       } finally {
         setLoading(false);
       }
@@ -237,11 +203,11 @@ export default function ChatList({ onOpenChat }) {
     const channel = supabase
       .channel('chat_rooms_list')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chat_rooms' }, fetchChats)
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: CHATS_TABLE }, fetchChats)
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chats' }, fetchChats)
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, [user?.id, isDemoMode, CHATS_TABLE]);
+  }, [user?.id]);
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return '';
