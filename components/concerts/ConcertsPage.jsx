@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import UnifiedSearchBar from '@/components/search/UnifiedSearchBar';
 const AddRecordModal = dynamic(() => import('../records/AddRecordModal'), { ssr: false });
 import { Search, MapPin, Calendar, CreditCard, Bookmark, Music, ChevronRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 const SAVED_CONCERTS_KEY = 'plin_saved_concert_ids';
 
@@ -29,12 +30,13 @@ function persistSavedIds(ids) {
 
 export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   const [concerts, setConcerts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [selectedConcert, setSelectedConcert] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [isAddingRecord, setIsAddingRecord] = useState(false);
   const [recordContext, setRecordContext] = useState(null);
-  const [openTicketLinks, setOpenTicketLinks] = useState(null); // holds concert.id for ticketing dropdown
 
   // Saved concerts — persisted in localStorage
   const [savedIds, setSavedIds] = useState(() => loadSavedIds());
@@ -50,6 +52,33 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
       setSearch(window.__searchQuery);
       window.__searchQuery = ''; // Consume it
     }
+  }, []);
+
+  // Fetch concerts from Supabase
+  useEffect(() => {
+    async function fetchConcerts() {
+      try {
+        setIsLoading(true);
+        setFetchError(null);
+        const { data, error } = await supabase
+          .from('concerts')
+          .select('*')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          throw error;
+        }
+
+        setConcerts(data || []);
+      } catch (err) {
+        console.error('Error fetching concerts:', err);
+        setFetchError('공연 정보를 불러오지 못했습니다');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchConcerts();
   }, []);
   
   // Supabase 기록 훅
@@ -71,11 +100,16 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
   const concertsWithSaved = concerts.map(c => ({ ...c, isBookmarked: savedIds.has(c.id) }));
 
   const filtered = concertsWithSaved.filter(c => {
-    const matchSearch = !search || c.name.toLowerCase().includes(search.toLowerCase()) || c.artist.toLowerCase().includes(search.toLowerCase());
+    const genresStr = Array.isArray(c.genre) ? c.genre.join(', ') : (c.genre || '');
+    const matchSearch = !search || 
+      (c.title && c.title.toLowerCase().includes(search.toLowerCase())) || 
+      (c.artist && c.artist.toLowerCase().includes(search.toLowerCase())) ||
+      (genresStr && genresStr.toLowerCase().includes(search.toLowerCase()));
+
     const matchFilter = activeFilter === 'all' || 
       (activeFilter === 'saved' && savedIds.has(c.id)) ||
-      (activeFilter === 'upcoming' && c.status === 'upcoming') ||
-      (activeFilter === 'soldout' && c.status === 'sold_out');
+      (activeFilter === '예매중' && c.status === '예매중') ||
+      (activeFilter === '공연종료' && c.status === '공연종료');
     return matchSearch && matchFilter;
   });
 
@@ -85,7 +119,6 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
       alert('공연 기록이 성공적으로 저장되었습니다!');
       setIsAddingRecord(false);
     } catch (err) {
-      // 에러 처리는 addRecord 내에서 기본적으로 알림을 띄웁니다.
       console.error(err);
     }
   };
@@ -146,9 +179,9 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
         <div className={styles.filters}>
           {[
             { id: 'all', label: '전체' },
-            { id: 'upcoming', label: '예정' },
+            { id: '예매중', label: '예매중' },
+            { id: '공연종료', label: '공연종료' },
             { id: 'saved', label: `저장됨${savedCount > 0 ? ` ${savedCount}` : ''}` },
-            { id: 'soldout', label: '매진' },
           ].map(f => (
             <button
               key={f.id}
@@ -172,138 +205,106 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
 
       {/* Concert List */}
       <div className={styles.list}>
-        <div className="stagger">
-          {filtered.map(concert => (
-            <div key={concert.id} className={styles.concertCard}>
-              {/* Status badge */}
-              <div className={styles.cardTop}>
-                <span className={concert.status === 'sold_out' ? styles.badgeSoldOut : styles.badgeUpcoming}>
-                  {concert.status === 'sold_out' ? '매진' : '예정'}
-                </span>
-                <button
-                  id={`save-btn-${concert.id}`}
-                  className={`${styles.bookmarkBtn} ${savedIds.has(concert.id) ? styles.bookmarkBtnActive : ''}`}
-                  onClick={() => toggleSave(concert.id)}
-                  aria-label={savedIds.has(concert.id) ? '저장 취소' : '저장'}
-                  title={savedIds.has(concert.id) ? '저장 취소' : '공연 저장'}
-                >
-                  <Bookmark 
-                    size={24} 
-                    fill={savedIds.has(concert.id) ? '#0054CB' : 'none'} 
-                    color={savedIds.has(concert.id) ? '#0054CB' : '#98A2B3'} 
-                  />
-                </button>
-              </div>
+        {isLoading ? (
+          <div className={styles.loadingContainer}>
+            <div className={styles.spinner}></div>
+            <p className={styles.loadingText}>공연 정보를 불러오는 중입니다...</p>
+          </div>
+        ) : fetchError ? (
+          <div className={styles.errorContainer}>
+            <p className={styles.errorText}>{fetchError}</p>
+          </div>
+        ) : (
+          <div className="stagger">
+            {filtered.map(concert => {
+              const genres = Array.isArray(concert.genre)
+                ? concert.genre
+                : (typeof concert.genre === 'string' ? concert.genre.split(',').map(g => g.trim()) : []);
 
-              <button
-                className={styles.cardMain}
-                onClick={() => setSelectedConcert(concert)}
-              >
-                {/* Artist info */}
-                <div className={styles.artistArea}>
-                  <div className={styles.artistSymbol}>
-                    <Music size={24} color="#667085" />
+              return (
+                <div key={concert.id} className={styles.concertCard}>
+                  {/* Status badge */}
+                  <div className={styles.cardTop}>
+                    <span className={concert.status === '공연종료' ? styles.badgeSoldOut : styles.badgeUpcoming}>
+                      {concert.status}
+                    </span>
+                    <button
+                      id={`save-btn-${concert.id}`}
+                      className={`${styles.bookmarkBtn} ${savedIds.has(concert.id) ? styles.bookmarkBtnActive : ''}`}
+                      onClick={() => toggleSave(concert.id)}
+                      aria-label={savedIds.has(concert.id) ? '저장 취소' : '저장'}
+                      title={savedIds.has(concert.id) ? '저장 취소' : '공연 저장'}
+                    >
+                      <Bookmark 
+                        size={24} 
+                        fill={savedIds.has(concert.id) ? '#0054CB' : 'none'} 
+                        color={savedIds.has(concert.id) ? '#0054CB' : '#98A2B3'} 
+                      />
+                    </button>
                   </div>
-                  <div className={styles.artistInfo}>
-                    <h3 className={styles.concertName}>{concert.name}</h3>
-                    <p className={styles.artistName}>{concert.artist}</p>
-                  </div>
-                </div>
 
-                {/* Details */}
-                <div className={styles.details}>
-                  <div className={styles.detailItem}>
-                    <Calendar size={16} color="#667085" />
-                    <span>{concert.date} {concert.time}</span>
-                  </div>
-                  <div className={styles.detailItem}>
-                    <MapPin size={16} color="#667085" />
-                    <span>{concert.venue}</span>
-                  </div>
-                  <div className={styles.detailItem}>
-                    <CreditCard size={16} color="#667085" />
-                    <span>{concert.price}</span>
-                  </div>
-                </div>
+                  <button
+                    className={styles.cardMain}
+                    onClick={() => setSelectedConcert(concert)}
+                  >
+                    {/* Artist info */}
+                    <div className={styles.artistArea}>
+                      <div className={styles.artistSymbol}>
+                        <Music size={24} color="#667085" />
+                      </div>
+                      <div className={styles.artistInfo}>
+                        <h3 className={styles.concertName}>{concert.title}</h3>
+                        <p className={styles.artistName}>{concert.artist}</p>
+                      </div>
+                    </div>
 
-                {/* Genre + review */}
-                <div className={styles.cardBottom}>
-                  <div className={styles.genres}>
-                    {concert.genre.map(g => (
-                      <span key={g} className={styles.genreChip}>{g}</span>
-                    ))}
-                  </div>
-                  {concert.reviewCount > 0 && (
-                    <span className={styles.reviewCount}>후기 {concert.reviewCount}개</span>
-                  )}
-                </div>
-              </button>
+                    {/* Details */}
+                    <div className={styles.details}>
+                      <div className={styles.detailItem}>
+                        <Calendar size={16} color="#667085" />
+                        <span>{concert.date}</span>
+                      </div>
+                      <div className={styles.detailItem}>
+                        <MapPin size={16} color="#667085" />
+                        <span>{concert.venue}</span>
+                      </div>
+                    </div>
 
-              {/* Action buttons */}
-              <div className={styles.cardActions}>
-                <button
-                  className={`${styles.ticketBtn} ${openTicketLinks === concert.id ? styles.activeTicketBtn : ''}`}
-                  disabled={concert.status === 'sold_out'}
-                  onClick={() => {
-                    if (concert.status !== 'sold_out') {
-                      setOpenTicketLinks(openTicketLinks === concert.id ? null : concert.id);
-                    }
-                  }}
-                >
-                  {concert.status === 'sold_out' ? '매진' : '예매하기'}
-                </button>
-                {concert.reviewCount > 0 && (
-                  <button className={styles.reviewBtn}>
-                    <span>후기 보러가기</span>
-                    <ChevronRight size={16} />
+                    {/* Genre */}
+                    <div className={styles.cardBottom}>
+                      <div className={styles.genres}>
+                        {genres.map(g => (
+                          <span key={g} className={styles.genreChip}>{g}</span>
+                        ))}
+                      </div>
+                    </div>
                   </button>
-                )}
-              </div>
 
-              {openTicketLinks === concert.id && (
-                <div className={styles.ticketLinksDropdown}>
-                  <div className={styles.ticketLinksDropdownTitle}>예매처 선택</div>
-                  <div className={styles.ticketLinksGrid}>
-                    <a
-                      href={`https://ticket.interpark.com/search?keyword=${encodeURIComponent(concert.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.ticketLinkItem}
-                    >
-                      🎟️ 인터파크
-                    </a>
-                    <a
-                      href={`https://ticket.yes24.com/search?query=${encodeURIComponent(concert.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.ticketLinkItem}
-                    >
-                      🎟️ YES24
-                    </a>
-                    <a
-                      href={`https://ticket.melon.com/search/index.htm?keyword=${encodeURIComponent(concert.name)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.ticketLinkItem}
-                    >
-                      🎟️ 멜론티켓
-                    </a>
-                    <a
-                      href={`https://search.naver.com/search.naver?query=${encodeURIComponent(concert.name + ' 예매')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.ticketLinkItem}
-                    >
-                      💚 네이버 예매
-                    </a>
+                  {/* Action buttons */}
+                  <div className={styles.cardActions}>
+                    {concert.status === '공연종료' ? (
+                      <div className={styles.endedBadge}>공연종료</div>
+                    ) : (
+                      <button
+                        className={styles.ticketBtn}
+                        disabled={concert.status !== '예매중' || !concert.ticket_url}
+                        onClick={() => {
+                          if (concert.status === '예매중' && concert.ticket_url) {
+                            window.open(concert.ticket_url, '_blank');
+                          }
+                        }}
+                      >
+                        예매하기
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
+        )}
 
-        {filtered.length === 0 && (
+        {!isLoading && !fetchError && filtered.length === 0 && (
           <div className="empty-state">
             {activeFilter === 'saved' ? (
               <>
@@ -329,7 +330,12 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
           onBookmark={() => toggleSave(selectedConcert.id)}
           onNavigate={onNavigate}
           onAddRecord={(concert) => {
-            setRecordContext(concert);
+            setRecordContext({
+              ...concert,
+              concertName: concert.title || '',
+              name: concert.title || '',
+              genre: Array.isArray(concert.genre) ? concert.genre : (typeof concert.genre === 'string' ? concert.genre.split(',').map(s => s.trim()) : [])
+            });
             setIsAddingRecord(true);
           }}
         />
@@ -345,3 +351,4 @@ export default function ConcertsPage({ onNavigate, onOpenSearch }) {
     </div>
   );
 }
+
