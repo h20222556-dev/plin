@@ -12,9 +12,9 @@
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  background: linear-gradient(135deg, rgba(139,46,255,0.15), rgba(255,45,106,0.15));
-  border: 1px solid rgba(139,46,255,0.3);
-  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(99, 102, 241, 0.08) 100%);
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 16px;
 }
 
 .aiBannerContent {
@@ -72,16 +72,17 @@
   gap: 12px;
   padding: 14px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
   text-align: left;
   width: 100%;
-  transition: all var(--transition-fast);
+  transition: all 0.2s ease;
 }
 
 .chatItem:hover:not(:disabled) {
   background: var(--bg-elevated);
-  border-color: rgba(255,255,255,0.08);
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.12);
 }
 
 .expired {
@@ -105,16 +106,13 @@
   position: absolute;
   top: -2px;
   right: -2px;
-  width: 18px;
-  height: 18px;
-  background: var(--pink);
-  border-radius: var(--radius-full);
-  font-size: 10px;
-  font-weight: 700;
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 8px;
+  height: 8px;
+  background: #2563EB;
+  border-radius: 50%;
+  font-size: 0;
+  color: transparent;
+  display: block;
 }
 
 .chatInfo {
@@ -142,7 +140,7 @@
 
 .chatPreview {
   font-size: 13px;
-  color: var(--text-secondary);
+  color: #9CA3AF;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

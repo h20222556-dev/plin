@@ -22,25 +22,25 @@
 }
 
 .monthlyStats {
-  background: rgba(8, 8, 16, 0.8);
-  backdrop-filter: blur(12px);
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(8px);
   color: white;
   padding: 10px 20px;
-  border-radius: var(--radius-full);
+  border-radius: 24px;
   font-size: 14px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   pointer-events: auto;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.2s;
+  transition: all 0.2s ease;
 }
 
 .monthlyStats:hover {
-  background: rgba(8, 8, 16, 0.95);
-  transform: scale(1.05);
+  background: rgba(15, 23, 42, 0.95);
+  transform: translateY(-1px) scale(1.03);
 }
 
 .monthlyStats strong {
-  color: #3B82F6;
+  color: #60A5FA;
   font-weight: 700;
 }
 

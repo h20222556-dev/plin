@@ -7,8 +7,10 @@
 }
 
 .header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
   padding: 24px var(--margin-mobile) 0;
   flex-shrink: 0;
 }
@@ -45,25 +47,35 @@
 
 .tabs {
   display: flex;
-  gap: 24px;
+  gap: 8px;
+  padding: 8px 0;
 }
 
 .tab {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 12px 0;
-  font-size: 15px;
+  padding: 8px 16px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
-  border-bottom: 2px solid transparent;
-  transition: all var(--transition-base);
-  position: relative;
+  color: #6B7280;
+  background: transparent;
+  border: 1.5px solid transparent;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.tab:hover {
+  background: rgba(0, 0, 0, 0.03);
+  color: var(--text-primary);
 }
 
 .tabActive {
-  color: var(--primary);
-  border-bottom-color: var(--primary);
+  background: #2563EB !important;
+  border-color: #2563EB;
+  color: white !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
 }
 
 .unreadBadge {
@@ -103,13 +115,15 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
+  background: #F4F6FA;
+  border: 1.5px solid transparent;
+  border-radius: 24px;
+  transition: all 0.2s ease;
 }
 .searchBar:focus-within {
-  border-color: var(--border-active);
+  border-color: #2563EB;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 
 .searchIcon {

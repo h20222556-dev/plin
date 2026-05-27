@@ -180,15 +180,33 @@
 }
 
 .daySelected {
-  background: var(--primary, #0054CB) !important;
-  border-radius: var(--radius-full, 9999px) !important;
-  border: 1px solid var(--primary, #0054CB) !important;
+  border: 2px solid #2563EB !important;
+  border-radius: 50% !important;
+  background: transparent !important;
 }
 
 .daySelected .dayNum {
+  color: var(--text-primary) !important;
+}
+
+.dayToday {
+  background: #2563EB !important;
+  border-radius: 50% !important;
+}
+
+.dayToday .dayNum {
   color: #FFFFFF !important;
 }
 
-.daySelected .dayDot {
+.dayToday.daySelected {
+  background: #2563EB !important;
+  border: 2px solid #1D4ED8 !important;
+}
+
+.dayToday.daySelected .dayNum {
   color: #FFFFFF !important;
+}
+
+.dayDot {
+  color: #2563EB;
 }

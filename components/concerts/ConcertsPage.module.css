@@ -7,8 +7,10 @@
 }
 
 .header {
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
   padding: 24px var(--margin-mobile) 12px;
   flex-shrink: 0;
   display: flex;
@@ -33,14 +35,15 @@
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  transition: all var(--transition-base);
+  background: #F4F6FA;
+  border: 1.5px solid transparent;
+  border-radius: 24px;
+  transition: all 0.2s ease;
 }
 .searchBar:focus-within {
-  border-color: var(--primary);
+  border-color: #2563EB;
   background: white;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
 }
 
 .searchIcon { font-size: 16px; color: var(--text-muted); }
@@ -74,11 +77,14 @@
 
 .concertCard {
   background: var(--bg-card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  transition: all var(--transition-base);
+  transition: all 0.2s ease;
+}
+.concertCard:hover {
+  box-shadow: 0 4px 20px rgba(37, 99, 235, 0.12);
 }
 
 .cardTop {
@@ -91,19 +97,19 @@
 .badgeUpcoming {
   font-size: 12px;
   font-weight: 700;
-  color: #10B981;
-  background: rgba(16, 185, 129, 0.1);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
+  color: #2563EB;
+  background: rgba(37, 99, 235, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
 .badgeSoldOut {
   font-size: 12px;
   font-weight: 700;
-  color: var(--text-muted);
-  background: var(--bg-surface);
-  padding: 4px 12px;
-  border-radius: var(--radius-full);
+  color: #6B7280;
+  background: rgba(107, 114, 128, 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
 .bookmarkBtn {
