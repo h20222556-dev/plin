@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { useRecords } from '@/lib/hooks/useRecords';
 import styles from './ProfilePage.module.css';
-import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight, Camera } from 'lucide-react';
+import { User, Settings, Globe, Lock, Mail, Key, Shield, Info, LogOut, ChevronRight, Camera, Copy } from 'lucide-react';
 
 export default function ProfilePage({ initialSection = 'profile', onRecordNavigate }) {
   const auth = useAuth();
@@ -29,6 +29,84 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
   // 내 평균 별점 및 평가 수 상태
   const [myRating, setMyRating] = useState(null);
   const [ratingCount, setRatingCount] = useState(0);
+
+  // 이메일 및 비밀번호 변경 모달 상태
+  const [userEmail, setUserEmail] = useState(user?.email || '');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwError, setPwError] = useState('');
+  
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser?.email) {
+          setUserEmail(authUser.email);
+        }
+      } catch (err) {
+        console.error('이메일 가져오기 실패:', err);
+      }
+    };
+    fetchUserEmail();
+  }, []);
+
+  const openPasswordModal = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setPwError('');
+    setShowPasswordModal(true);
+  };
+
+  const handlePasswordChange = async () => {
+    if (!currentPassword) {
+      setPwError('현재 비밀번호를 입력해주세요.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setPwError('새 비밀번호는 최소 6자 이상이어야 합니다.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwError('새 비밀번호가 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      // 1. 현재 비밀번호로 재인증
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: userEmail || user?.email,
+        password: currentPassword
+      });
+
+      if (signInError) {
+        setPwError('현재 비밀번호가 올바르지 않습니다.');
+        return;
+      }
+
+      // 2. 재인증 성공 시 새 비밀번호로 업데이트
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (updateError) {
+        setPwError(updateError.message || '비밀번호 변경에 실패했습니다.');
+        return;
+      }
+
+      alert('비밀번호가 변경되었습니다.');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPwError('');
+    } catch (err) {
+      console.error('비밀번호 변경 중 에러:', err);
+      setPwError('비밀번호 변경 과정에서 오류가 발생했습니다.');
+    }
+  };
 
   // 프로필 사진 업로드
   const avatarInputRef = useRef(null);
@@ -551,12 +629,36 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
                 <p className={styles.groupLabel}>계정</p>
                 <div className={styles.settingItem}>
                   <Mail size={20} color="#667085" />
-                  <div className={styles.settingInfo}>
+                  <div className={styles.settingInfo} style={{ flex: 1 }}>
                     <p className={styles.settingTitle}>이메일</p>
-                    <p className={styles.settingValue}>{user?.email}</p>
+                    <p className={styles.settingValue}>{userEmail || '이메일 정보 없음'}</p>
                   </div>
+                  {userEmail && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(userEmail);
+                        alert('이메일 주소가 복사되었습니다.');
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#667085'
+                      }}
+                      title="이메일 복사"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  )}
                 </div>
-                <button className={styles.settingItem}>
+                <button 
+                  className={styles.settingItem}
+                  onClick={openPasswordModal}
+                >
                   <Key size={20} color="#667085" />
                   <div className={styles.settingInfo}>
                     <p className={styles.settingTitle}>비밀번호 변경</p>
@@ -713,6 +815,143 @@ export default function ProfilePage({ initialSection = 'profile', onRecordNaviga
           </div>
         )}
       </div>
+
+      {/* Password Change Modal */}
+      {showPasswordModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+        }} onClick={() => setShowPasswordModal(false)}>
+          <div style={{
+            background: 'white',
+            borderRadius: 16,
+            padding: 24,
+            width: '100%',
+            maxWidth: 360,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16, color: '#101828', textAlign: 'left' }}>비밀번호 변경</h3>
+            
+            {user?.app_metadata?.provider === 'google' ? (
+              <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                <p style={{ fontSize: 14, color: '#667085', lineHeight: 1.5 }}>
+                  소셜 로그인 계정은 비밀번호 변경이 불가합니다.
+                </p>
+                <button
+                  className="btn-primary"
+                  onClick={() => setShowPasswordModal(false)}
+                  style={{ marginTop: 24, width: '100%', padding: '12px', borderRadius: '8px', border: 'none', background: '#0054CB', color: 'white', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  확인
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', width: '100%' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#344054' }}>현재 비밀번호</label>
+                  <input
+                    type="password"
+                    placeholder="현재 비밀번호 입력"
+                    value={currentPassword}
+                    onChange={e => { setCurrentPassword(e.target.value); setPwError(''); }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #D0D5DD',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', width: '100%' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#344054' }}>새 비밀번호 (최소 6자)</label>
+                  <input
+                    type="password"
+                    placeholder="새 비밀번호 입력"
+                    value={newPassword}
+                    onChange={e => { setNewPassword(e.target.value); setPwError(''); }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #D0D5DD',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', width: '100%' }}>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: '#344054' }}>새 비밀번호 확인</label>
+                  <input
+                    type="password"
+                    placeholder="새 비밀번호 다시 입력"
+                    value={confirmPassword}
+                    onChange={e => { setConfirmPassword(e.target.value); setPwError(''); }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 14px',
+                      border: '1px solid #D0D5DD',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                {pwError && (
+                  <p style={{ fontSize: 12, color: '#ff3b30', margin: '0', fontWeight: 500, textAlign: 'left' }}>
+                    {pwError}
+                  </p>
+                )}
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => setShowPasswordModal(false)}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: 8,
+                      border: '1px solid #D0D5DD',
+                      background: 'white',
+                      cursor: 'pointer',
+                      fontWeight: '600',
+                      color: '#344054'
+                    }}
+                  >
+                    취소
+                  </button>
+                  <button
+                    onClick={handlePasswordChange}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: 8,
+                      border: 'none',
+                      background: '#0054CB',
+                      color: 'white',
+                      cursor: 'pointer',
+                      fontWeight: '600'
+                    }}
+                  >
+                    변경하기
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

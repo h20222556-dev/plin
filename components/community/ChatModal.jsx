@@ -530,7 +530,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 700
+          zIndex: 100100
         }}>
           <div style={{
             background: 'white',
@@ -591,7 +591,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 700
+          zIndex: 100100
         }}>
           <div style={{
             background: 'white',
