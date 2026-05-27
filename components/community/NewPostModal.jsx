@@ -2,10 +2,12 @@ import { useState, useRef } from 'react';
 import { emotionOptions } from '@/lib/mockData';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { Music, Check, Hash, X } from 'lucide-react';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './NewPostModal.module.css';
 
-export default function NewPostModal({ onClose, onPost }) {
+export default function NewPostModal({ isOpen = true, onClose, onPost }) {
   const { records } = useRecords();
+
   const [content, setContent] = useState('');
   const [selectedPerfId, setSelectedPerfId] = useState(null);
   const [emotion, setEmotion] = useState('');
@@ -56,10 +58,17 @@ export default function NewPostModal({ onClose, onPost }) {
     }
   };
 
+  useScrollLock(isOpen);
+
   return (
-    <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="modal-sheet">
+    <div 
+      className={`modal-overlay ${styles.overlay}`} 
+      onClick={e => e.target === e.currentTarget && onClose()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
+      <div className={`modal-sheet ${styles.sheet}`}>
         <div className="modal-handle" />
+
         <div className={styles.header}>
           <h2 className={styles.title}>새 게시물</h2>
           <button className={styles.closeBtn} onClick={onClose}>✕</button>

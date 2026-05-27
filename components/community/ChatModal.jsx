@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { useChat } from '@/lib/hooks/useChat';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './ChatModal.module.css';
 import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react';
 
@@ -16,8 +17,9 @@ import { ChevronLeft, MoreVertical, Send, User, Clock, Info } from 'lucide-react
  *   expiresAt: string,     // ISO 날짜 문자열 (옵션)
  * }
  */
-export default function ChatModal({ chat, onClose }) {
+export default function ChatModal({ chat, onClose, isChatOpen = true }) {
   const { user, isDemoMode } = useAuth();
+
   const { messages, loading, sendMessage } = useChat(chat.roomId, chat.recipientId);
   const [input, setInput] = useState('');
   const messagesEndRef = useRef(null);
@@ -350,8 +352,10 @@ export default function ChatModal({ chat, onClose }) {
 
   const nickname = opponent?.nickname || chat.recipientNickname || '알 수 없는 사용자';
 
+  useScrollLock(isChatOpen);
+
   return (
-    <div className={styles.overlay}>
+    <div className={styles.overlay} onTouchMove={(e) => e.stopPropagation()}>
       <div className={styles.chatContainer}>
         {/* Header */}
         <div className={styles.header}>

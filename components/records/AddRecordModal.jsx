@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import dynamic from 'next/dynamic';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './AddRecordModal.module.css';
 import { 
   X, Camera, Calendar, MapPin, 
@@ -25,7 +26,7 @@ const WEATHER_OPTIONS = [
 
 
 
-export default function AddRecordModal({ onClose, onSave, initialData }) {
+export default function AddRecordModal({ isOpen = true, onClose, onSave, initialData }) {
   const isEditing = !!initialData?.id;
   const [step, setStep] = useState(1);
   const fileInputRef = useRef(null);
@@ -129,8 +130,14 @@ export default function AddRecordModal({ onClose, onSave, initialData }) {
     set('photos', [...form.photos, ...newPhotos]);
   };
 
+  useScrollLock(isOpen);
+
   return (
-    <div className={styles.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div 
+      className={styles.overlay} 
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      onTouchMove={(e) => e.stopPropagation()}
+    >
       <div className={styles.modal}>
         {/* Header */}
         <div className={styles.header}>

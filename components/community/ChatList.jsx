@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './ChatList.module.css';
 import { Sparkles, Clock, User, X, Loader2 } from 'lucide-react';
 import { getRecommendedMates } from '@/lib/recommendMates';
@@ -14,6 +15,9 @@ export default function ChatList({ onOpenChat }) {
 
   // AI 추천 관련 상태 추가
   const [showRecs, setShowRecs] = useState(false);
+  
+  useScrollLock(showRecs);
+
   const [recs, setRecs] = useState([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [startingChat, setStartingChat] = useState(false);
@@ -319,7 +323,12 @@ export default function ChatList({ onOpenChat }) {
 
       {/* AI Recommendation Panel */}
       {showRecs && (
-        <div className="modal-overlay" onClick={e => e.target === e.currentTarget && setShowRecs(false)}>
+        <div 
+          className="modal-overlay" 
+          onClick={e => e.target === e.currentTarget && setShowRecs(false)}
+          onTouchMove={(e) => e.stopPropagation()}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, overflow: 'hidden' }}
+        >
           <div className="modal-sheet" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <div className="modal-handle" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -329,7 +338,7 @@ export default function ChatList({ onOpenChat }) {
               </button>
             </div>
 
-            <div style={{ maxHeight: '60vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
+            <div style={{ maxHeight: '100%', overflowY: 'auto', WebkitOverflowScrolling: 'touch', overscrollBehavior: 'contain', display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '4px' }}>
               {recsLoading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', gap: '8px' }}>
                   <Loader2 className={styles.spinner} size={32} color="var(--primary)" />
