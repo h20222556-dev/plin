@@ -91,7 +91,7 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
 
         const { data: opponentData } = await supabase
           .from('users')
-          .select('id, nickname, profile_emoji, bio')
+          .select('id, nickname, profile_emoji, bio, avatar_url')
           .eq('id', targetId)
           .single();
 
@@ -298,8 +298,12 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
           </button>
 
           <div className={styles.headerCenter}>
-            <div className={styles.avatar}>
-              <span style={{ fontSize: '18px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
+            <div className={styles.avatar} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {opponent?.avatar_url ? (
+                <img src={opponent.avatar_url} alt={nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontSize: '18px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
+              )}
             </div>
             <div>
               <h3 className={styles.name}>{nickname}</h3>
@@ -332,7 +336,13 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
               }}>
                 {opponent && (
                   <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                    <span style={{ fontSize: 32, marginBottom: 4 }}>{opponent.profile_emoji}</span>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 8, background: 'rgba(0, 84, 203, 0.1)' }}>
+                      {opponent.avatar_url ? (
+                        <img src={opponent.avatar_url} alt={opponent.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 32 }}>{opponent.profile_emoji || '🧑‍🎤'}</span>
+                      )}
+                    </div>
                     <p style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{opponent.nickname}</p>
                     {opponent.bio && <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>{opponent.bio}</p>}
                   </div>
@@ -433,8 +443,12 @@ export default function ChatModal({ chat, onClose, isChatOpen = true }) {
                 {!isMine && (
                   <div className={styles.msgAvatarWrapper}>
                     {showAvatar && (
-                      <div className={styles.msgAvatar}>
-                        <span style={{ fontSize: '14px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
+                      <div className={styles.msgAvatar} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {opponent?.avatar_url ? (
+                          <img src={opponent.avatar_url} alt={nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ fontSize: '14px' }}>{opponent?.profile_emoji || '🧑‍🎤'}</span>
+                        )}
                       </div>
                     )}
                   </div>
