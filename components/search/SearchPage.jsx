@@ -122,7 +122,13 @@ export default function SearchPage() {
                 <h3 className={styles.sectionTitle}>💬 게시물</h3>
                 {filtered.posts.map(p => (
                   <div key={p.id} className={styles.resultItem}>
-                    <span className={styles.resultEmoji}>{p.author.profileEmoji}</span>
+                    <span className={styles.resultEmoji} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {p.author.avatarUrl ? (
+                        <img src={p.author.avatarUrl} alt={p.author.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        p.author.profileEmoji
+                      )}
+                    </span>
                     <div className={styles.resultInfo}>
                       <p className={styles.resultName}>{p.author.nickname}</p>
                       <p className={styles.resultSub}>{p.content.slice(0, 60)}...</p>
@@ -155,7 +161,13 @@ export default function SearchPage() {
                 <h3 className={styles.sectionTitle}>👤 사용자</h3>
                 {filtered.users.map(u => (
                   <div key={u.uid} className={styles.resultItem}>
-                    <span className={styles.resultEmoji}>{u.profileEmoji}</span>
+                    <span className={styles.resultEmoji} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {u.avatarUrl ? (
+                        <img src={u.avatarUrl} alt={u.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        u.profileEmoji
+                      )}
+                    </span>
                     <div className={styles.resultInfo}>
                       <p className={styles.resultName}>{u.nickname}</p>
                       <p className={styles.resultSub}>공연 {u.concertCount}개 기록</p>

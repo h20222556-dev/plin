@@ -146,7 +146,7 @@ export default function ChatList({ onOpenChat }) {
             // 상대방 프로필
             const { data: recipient } = await supabase
               .from('users')
-              .select('id, nickname, profile_emoji')
+              .select('id, nickname, profile_emoji, avatar_url')
               .eq('id', recipientId)
               .single();
 
@@ -177,6 +177,7 @@ export default function ChatList({ onOpenChat }) {
               recipientId,
               recipientNickname: recipient?.nickname || '알 수 없는 사용자',
               recipientEmoji: recipient?.profile_emoji || '🧑‍🎤',
+              recipientAvatar: recipient?.avatar_url || null,
               lastMessage: lastMsg?.message || '채팅을 시작하세요',
               lastMessageAt: lastMsg?.created_at || room.created_at,
               expiresAt: room.expires_at,
@@ -286,7 +287,9 @@ export default function ChatList({ onOpenChat }) {
               onClick={() => handleOpen(chat)}
             >
               <div className={styles.chatAvatar}>
-                {chat.recipientEmoji ? (
+                {chat.recipientAvatar ? (
+                  <img src={chat.recipientAvatar} alt={chat.recipientNickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : chat.recipientEmoji ? (
                   <span style={{ fontSize: 24 }}>{chat.recipientEmoji}</span>
                 ) : (
                   <User size={24} color="#0054CB" />
@@ -346,8 +349,12 @@ export default function ChatList({ onOpenChat }) {
                   <div key={mate.userId} className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--gradient-brand-soft)', border: '1px solid var(--border)' }}>
-                          <span style={{ fontSize: '20px' }}>{mate.profile_emoji}</span>
+                        <div className="avatar" style={{ width: '40px', height: '40px', background: 'var(--gradient-brand-soft)', border: '1px solid var(--border)', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {mate.avatar_url ? (
+                            <img src={mate.avatar_url} alt={mate.nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <span style={{ fontSize: '20px' }}>{mate.profile_emoji}</span>
+                          )}
                         </div>
                         <div>
                           <h4 style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{mate.nickname}</h4>

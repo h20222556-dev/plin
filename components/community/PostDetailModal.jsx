@@ -24,7 +24,7 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
     try {
       const { data, error } = await supabase
         .from('comments')
-        .select('*, users(nickname, profile_emoji)')
+        .select('*, users(nickname, profile_emoji, avatar_url)')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true });
       if (error) throw error;
@@ -117,7 +117,9 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
           {/* Author */}
           <div className={styles.author}>
             <div className={styles.avatar}>
-              {post.author?.profileEmoji ? (
+              {post.author?.avatarUrl ? (
+                <img src={post.author.avatarUrl} alt={post.author.nickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : post.author?.profileEmoji ? (
                 <span>{post.author.profileEmoji}</span>
               ) : (
                 <User size={20} color="#0054CB" />
@@ -188,9 +190,16 @@ export default function PostDetailModal({ post: initialPost, onClose, onLike }) 
                 commentsList.map(c => {
                   const nickname = c.users?.nickname || '알 수 없는 유저';
                   const emoji = c.users?.profile_emoji || '🧑‍🎼';
+                  const avatarUrl = c.users?.avatar_url;
                   return (
                     <div key={c.id} className={styles.commentItem}>
-                      <div className={styles.commentAvatar}>{emoji}</div>
+                      <div className={styles.commentAvatar}>
+                        {avatarUrl ? (
+                          <img src={avatarUrl} alt={nickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          emoji
+                        )}
+                      </div>
                       <div className={styles.commentBody}>
                         <div className={styles.commentHeader}>
                           <span className={styles.commentUser}>{nickname}</span>

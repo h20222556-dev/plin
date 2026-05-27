@@ -31,7 +31,7 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
     try {
       const { data, error } = await supabase
         .from('comments')
-        .select('*, users(nickname, profile_emoji)')
+        .select('*, users(nickname, profile_emoji, avatar_url)')
         .eq('post_id', post.id)
         .order('created_at', { ascending: true });
       if (error) throw error;
@@ -189,7 +189,9 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
           onClick={() => onAuthorClick && onAuthorClick(post.author)}
         >
           <div className={styles.avatar}>
-            {post.author?.profileEmoji ? (
+            {post.author?.avatarUrl ? (
+              <img src={post.author.avatarUrl} alt={post.author.nickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : post.author?.profileEmoji ? (
               <span style={{ fontSize: 20 }}>{post.author.profileEmoji}</span>
             ) : (
               <User size={20} color="#0054CB" />
@@ -304,9 +306,16 @@ export default function PostCard({ post, onLike, onAuthorClick, deletePost, onPo
               commentsList.map(c => {
                 const nickname = c.users?.nickname || '알 수 없는 유저';
                 const emoji = c.users?.profile_emoji || '🧑‍🎼';
+                const avatarUrl = c.users?.avatar_url;
                 return (
                   <div key={c.id} style={{ display: 'flex', gap: '8px', padding: '8px 0', borderBottom: '1px solid #F2F4F7', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: 16 }}>{emoji}</span>
+                    <div style={{ width: '24px', height: '24px', borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={nickname} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 16 }}>{emoji}</span>
+                      )}
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <span style={{ fontSize: 12, fontWeight: '600', color: '#344054' }}>{nickname}</span>

@@ -100,7 +100,7 @@ export default function UserProfilePage({ params }) {
           if (followerIds.length > 0) {
             const { data: followersProfileData, error: followersProfileErr } = await supabase
               .from('users')
-              .select('id, nickname, profile_emoji')
+              .select('id, nickname, profile_emoji, avatar_url')
               .in('id', followerIds);
             if (!followersProfileErr) {
               setFollowers(followersProfileData || []);
@@ -224,7 +224,11 @@ export default function UserProfilePage({ params }) {
         <div className={styles.profileCard}>
           <div className={styles.profileTop}>
             <div className={styles.avatarLarge}>
-              {profile.profile_emoji || '👤'}
+              {profile.avatar_url ? (
+                <img src={profile.avatar_url} alt="Profile" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                profile.profile_emoji || '👤'
+              )}
             </div>
 
             <div className={styles.profileInfo}>
@@ -423,7 +427,11 @@ export default function UserProfilePage({ params }) {
                           onClick={() => router.push(`/profile/${f.id}`)}
                         >
                           <div className={styles.followerAvatar}>
-                            {f.profile_emoji || '👤'}
+                            {f.avatar_url ? (
+                              <img src={f.avatar_url} alt={f.nickname} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                            ) : (
+                              f.profile_emoji || '👤'
+                            )}
                           </div>
                           <div className={styles.followerInfo}>
                             <h4 className={styles.followerNickname}>{f.nickname}</h4>
