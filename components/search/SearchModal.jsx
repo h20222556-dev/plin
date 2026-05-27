@@ -21,6 +21,26 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
   const [selectedUser, setSelectedUser] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
   const [startingChat, setStartingChat] = useState(false);
+  const [popularTags, setPopularTags] = useState(['아이브', '아이유', '세븐틴', '콘서트후기', '인생공연', '내한공연']);
+
+  // Fetch popular keywords on open
+  useEffect(() => {
+    const fetchPopularTags = async () => {
+      try {
+        const { data, error } = await supabase.rpc('get_popular_keywords');
+        if (error) throw error;
+        if (data && data.length > 0) {
+          setPopularTags(data.map(item => item.keyword));
+        }
+      } catch (err) {
+        console.error('인기 태그 로드 실패:', err.message);
+      }
+    };
+
+    if (isOpen) {
+      fetchPopularTags();
+    }
+  }, [isOpen]);
 
   // Auto focus input when modal opens
   useEffect(() => {
@@ -141,7 +161,7 @@ export default function SearchModal({ isOpen, onClose, onNavigate }) {
             <div className={styles.discover}>
               <h3 className={styles.discoverTitle}>인기 태그 🔥</h3>
               <div className={styles.trendingList}>
-                {['아이브', '아이유', '세븐틴', '콘서트후기', '인생공연', '내한공연'].map((tag) => (
+                {popularTags.map((tag) => (
                   <button
                     key={tag}
                     className={styles.trendingTag}
