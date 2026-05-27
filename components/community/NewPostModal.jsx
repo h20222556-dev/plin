@@ -1,8 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { emotionOptions } from '@/lib/mockData';
 import { useRecords } from '@/lib/hooks/useRecords';
 import { Music, Check, Hash, X } from 'lucide-react';
-import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './NewPostModal.module.css';
 
 export default function NewPostModal({ isOpen = true, onClose, onPost }) {
@@ -58,7 +57,22 @@ export default function NewPostModal({ isOpen = true, onClose, onPost }) {
     }
   };
 
-  useScrollLock(isOpen);
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [isOpen]);
 
   return (
     <div 

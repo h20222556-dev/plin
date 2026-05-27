@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/lib/hooks/useAuth';
-import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import styles from './ChatList.module.css';
 import { Sparkles, Clock, User, X, Loader2 } from 'lucide-react';
 import { getRecommendedMates } from '@/lib/recommendMates';
@@ -16,7 +15,22 @@ export default function ChatList({ onOpenChat }) {
   // AI 추천 관련 상태 추가
   const [showRecs, setShowRecs] = useState(false);
   
-  useScrollLock(showRecs);
+  useEffect(() => {
+    if (showRecs) {
+      document.body.style.overflow = 'hidden'
+      document.body.style.position = 'fixed'
+      document.body.style.width = '100%'
+    } else {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+      document.body.style.position = ''
+      document.body.style.width = ''
+    }
+  }, [showRecs]);
 
   const [recs, setRecs] = useState([]);
   const [recsLoading, setRecsLoading] = useState(false);
@@ -327,9 +341,29 @@ export default function ChatList({ onOpenChat }) {
           className="modal-overlay" 
           onClick={e => e.target === e.currentTarget && setShowRecs(false)}
           onTouchMove={(e) => e.stopPropagation()}
-          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, overflow: 'hidden' }}
+          style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 9999, background: 'rgba(0,0,0,0.5)' }}
         >
-          <div className="modal-sheet" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div 
+            className="modal-sheet" 
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              width: '100%', 
+              height: '100dvh', 
+              zIndex: 10000, 
+              overflowY: 'auto', 
+              WebkitOverflowScrolling: 'touch', 
+              overscrollBehavior: 'contain', 
+              background: 'white', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '16px',
+              padding: '24px 20px',
+              borderRadius: 0,
+              maxHeight: '100dvh'
+            }}
+          >
             <div className="modal-handle" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 style={{ fontSize: 18, fontWeight: 700 }}>AI 공연 메이트 추천</h2>
